@@ -1,14 +1,13 @@
-# app/view/genre_filter.R
+# genre_filter.R
 box::use(
-  shiny[
-    fluidPage, titlePanel, sidebarLayout, sidebarPanel, mainPanel, selectizeInput,
-    textInput, numericInput, actionButton, renderTable, tableOutput,
-    moduleServer, NS, req, observeEvent, renderUI, uiOutput, tags, updateSelectizeInput, observe  # Added updateSelectizeInput
-  ],
-  spotifyr[get_genre_artists],
+  dplyr[`%>%`, select],
   memoise[memoise],
-  dplyr[select, `%>%`],
-  app/config/genres
+  shiny[...], #nolint
+  spotifyr[get_genre_artists],
+)
+
+box::use(
+  app/config/genres,
 )
 
 # Memoize the Spotify API function to enable caching
@@ -27,7 +26,7 @@ ui <- function(id) {
           choices = NULL,  # Allow any genre to be input
           options = list(
             create = TRUE,  # Allows user to input new genres
-            placeholder = 'Type or select a genre'
+            placeholder = "Type or select a genre"
           )
         ),
         textInput(ns("market"), "Enter Country Code (Optional)", placeholder = "e.g., US"),
@@ -87,7 +86,9 @@ server <- function(id) {
           NULL  # Clear the table output
         })
         output$message <- renderUI({
-          tags$p("No artists found for the genre '", tags$b(input$genre), "'. Please try a different genre.")
+          tags$p("No artists found for the genre '",
+                 tags$b(input$genre),
+                 "'. Please try a different genre.")
         })
       } else {
         # Clear any previous messages
