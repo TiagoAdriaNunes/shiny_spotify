@@ -1,10 +1,11 @@
 # main.R
 
 box::use(
-  shiny[...],#nolint
+  shiny[...], #nolint
 )
 
 box::use(
+  app/logic/auth, #nolint
   app/view/artist_profile,
   app/view/artist_search,
   app/view/artist_top_tracks,
