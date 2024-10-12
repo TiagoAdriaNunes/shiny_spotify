@@ -1,20 +1,20 @@
 box::use(
   htmltools[tagList],
-  shiny[...],#nolint
+  shiny[...], #nolint
   spotifyr[get_artist_top_tracks],
 )
 
 # UI function for the artist's top tracks
-ui <- function(id) {
+ui <- function(id) { #nolint
   ns <- NS(id)
   tagList(
     tags$h3("Top Tracks"),
-    uiOutput(ns("top_tracks_list"))
+    uiOutput(ns("top_tracks_list")),
   )
 }
 
 # Server function for the artist's top tracks
-server <- function(id, artist_id) {
+server <- function(id, artist_id) { #nolint
   moduleServer(id, function(input, output, session) {
     ns <- session$ns  # Use session to define ns within the server
     # Observe changes in artist_id (reactive)
@@ -36,9 +36,8 @@ server <- function(id, artist_id) {
         }
         # Display the top 5 tracks
         tagList(
-          tags$h3("Top Tracks"),
           tags$ul(
-            lapply(1:min(5, nrow(top_tracks)), function(i) {
+            lapply(seq_len(min(5, nrow(top_tracks))), function(i) {
               tags$li(paste(top_tracks$name[i], "-", top_tracks$popularity[i], "popularity"))
             })
           )

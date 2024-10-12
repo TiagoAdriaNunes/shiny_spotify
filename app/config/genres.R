@@ -1,7 +1,7 @@
 # genres.R
 
 # Define the list of genres
-genres_list <- c(
+genres_list <- c( #nolint
   "acoustic",
   "afrobeat",
   "alt-rock",
