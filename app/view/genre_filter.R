@@ -3,7 +3,7 @@ box::use(
   shiny[
     fluidPage, titlePanel, sidebarLayout, sidebarPanel, mainPanel, selectizeInput,
     textInput, numericInput, actionButton, renderTable, tableOutput,
-    moduleServer, NS, req, observeEvent, renderUI, uiOutput, tags, updateSelectizeInput  # Added updateSelectizeInput
+    moduleServer, NS, req, observeEvent, renderUI, uiOutput, tags, updateSelectizeInput, observe  # Added updateSelectizeInput
   ],
   spotifyr[get_genre_artists],
   memoise[memoise],

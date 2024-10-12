@@ -41,3 +41,6 @@ View(chicago)
 
 
 #tiago <- get_categories()     
+
+
+kendricktop <- spotifyr::get_artist_top_tracks('2YZyLoL8N0Wb9xBt1NhZWg')

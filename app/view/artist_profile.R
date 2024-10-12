@@ -1,16 +1,18 @@
 # app/view/artist_profile.R
+
+# Import necessary libraries and functions
 box::use(
   shiny[
     fluidPage, titlePanel, sidebarLayout, sidebarPanel, mainPanel,
     textOutput, moduleServer, NS, renderText, renderUI, uiOutput,
-    observeEvent, req, tags  # tagList removed
+    observeEvent, req, tags, fluidRow, column
   ],
-  htmltools[tagList],  # tagList imported from htmltools
+  htmltools[tagList],
   spotifyr[get_artist, get_related_artists],
   memoise[memoise]
 )
 
-# Memoize the get_artist and get_related_artists functions to enable caching
+# Memoize the Spotify API functions for caching
 get_artist_memo <- memoise(get_artist)
 get_related_artists_memo <- memoise(get_related_artists)
 
@@ -18,6 +20,7 @@ get_related_artists_memo <- memoise(get_related_artists)
 #' @export
 ui <- function(id) {
   ns <- NS(id)
+  # Note: No need to include uiOutput for artist_image here
   fluidPage(
     titlePanel("Artist Profile"),
     uiOutput(ns("profile_content"))  # Dynamic output for profile content
@@ -28,31 +31,47 @@ ui <- function(id) {
 #' @export
 server <- function(id, artist_id) {
   moduleServer(id, function(input, output, session) {
-    ns <- session$ns  # Use session to define ns within the server
+    ns <- session$ns
     
-    observeEvent(artist_id(), {  # Trigger this whenever the artist ID changes
-      req(artist_id())  # Ensure artist_id is not empty
+    # React to artist_id changes
+    observeEvent(artist_id(), {
+      req(artist_id())
       
-      # Use memoized function to get artist data
-      artist_info <- get_artist_memo(artist_id())
+      # Fetch artist data
+      artist_info <- tryCatch({
+        get_artist_memo(artist_id())
+      }, error = function(e) {
+        NULL
+      })
       
-      # Use memoized function to get related artists
-      related_artists <- get_related_artists_memo(artist_id())
+      # Fetch related artists
+      related_artists <- tryCatch({
+        get_related_artists_memo(artist_id())
+      }, error = function(e) {
+        NULL
+      })
       
-      # Dynamically render the UI for the artist profile
+      # Render the UI for the artist profile
       output$profile_content <- renderUI({
-        if (is.null(artist_info)) {
-          return(NULL)  # Don't display anything if no artist is selected
+        if (is.null(artist_info) || !is.list(artist_info)) {
+          return(tags$p("No artist information available."))
         }
-        sidebarLayout(
-          sidebarPanel(
-            textOutput(ns("artist_name")),  # Artist's name
-            textOutput(ns("artist_genres")),  # Artist's genres
-            textOutput(ns("artist_popularity")),  # Artist's popularity
-            uiOutput(ns("related_artists"))  # Output for related artists
-          ),
-          mainPanel(
-            uiOutput(ns("artist_image"))  # Render image in a dynamic output
+        
+        fluidPage(
+          fluidRow(
+            # Artist information
+            column(6,
+                   tags$h3("Artist Profile"),
+                   tags$p(textOutput(ns("artist_name"))),
+                   tags$p(textOutput(ns("artist_genres"))),
+                   tags$p(textOutput(ns("artist_popularity")))
+            ),
+            # Related artists and image
+            column(6,
+                   uiOutput(ns("related_artists")),
+                   # Include the image rendering here
+                   uiOutput(ns("artist_image"))
+            )
           )
         )
       })
@@ -62,30 +81,41 @@ server <- function(id, artist_id) {
         tags$img(src = artist_info$images$url[1], width = "300px", height = "300px")  # Render only the first image
       })
       
-      # Render artist's name
+       # Render artist's name
       output$artist_name <- renderText({
-        paste("Name: ", artist_info$name)
+        if (!is.null(artist_info$name)) {
+          paste("Name:", artist_info$name)
+        } else {
+          "Name not available"
+        }
       })
       
       # Render artist's popularity
       output$artist_popularity <- renderText({
-        paste("Popularity: ", artist_info$popularity)
+        if (!is.null(artist_info$popularity)) {
+          paste("Popularity:", artist_info$popularity)
+        } else {
+          "Popularity not available"
+        }
       })
       
       # Render artist's genres
       output$artist_genres <- renderText({
-        paste("Genres: ", paste(artist_info$genres, collapse = ", "))
+        if (!is.null(artist_info$genres) && length(artist_info$genres) > 0) {
+          paste("Genres:", paste(artist_info$genres, collapse = ", "))
+        } else {
+          "Genres not available"
+        }
       })
-
       
-      # Render related artists (first 5 related artists)
+      
+      # Render related artists
       output$related_artists <- renderUI({
-        if (is.null(related_artists) || nrow(related_artists) == 0) {
+        if (is.null(related_artists) || !is.data.frame(related_artists) || nrow(related_artists) == 0) {
           return(tags$p("No related artists found."))
         }
         
-        # Show the first 5 related artists
-        tagList(  # This is where tagList is used
+        tagList(
           tags$h3("Related Artists:"),
           tags$ul(
             lapply(1:min(5, nrow(related_artists)), function(i) {
