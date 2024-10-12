@@ -28,7 +28,8 @@ ui <- function(id) {
         )
       )),
       tabPanel("Search by Genre", genre_filter$ui(ns("genre_filter")))
-    )
+    ),
+    uiOutput(ns("message"))  # Add a UI output for the message
   )
 }
 
@@ -46,5 +47,10 @@ server <- function(id) {
     artist_top_tracks$server("artist_top_tracks", selected_artist_id)
     # Call genre filter server logic
     genre_filter$server("genre_filter")
+    
+    # Define the message output
+    output$message <- renderUI({
+      tags$p("Spotify Search App!")
+    })
   })
 }
