@@ -1,6 +1,6 @@
 # artist_search.R
 box::use(
-  bslib[card, card_header, page_fillable, layout_sidebar],
+  bslib[page_fillable],
   memoise[memoise],
   shiny[...], #nolint
   spotifyr[search_spotify],

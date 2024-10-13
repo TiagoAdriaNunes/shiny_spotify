@@ -2,7 +2,6 @@
 
 # Import necessary libraries and functions
 box::use(
-  htmltools[HTML],
   memoise[memoise],
   shiny[...], #nolint
   spotifyr[get_related_artists],
