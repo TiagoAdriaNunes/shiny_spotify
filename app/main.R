@@ -1,7 +1,8 @@
 # main.R
 
 box::use(
-  shiny[...], #nolint
+  bslib[...], #nolint,
+  shiny[...], #nolint,
 )
 
 box::use(
@@ -10,27 +11,33 @@ box::use(
   app/view/artist_search,
   app/view/artist_top_tracks,
   app/view/genre_filter,
+  app/view/related_artists,
 )
 
 # Top-level UI function
 #' @export
 ui <- function(id) {
   ns <- NS(id)
-  fluidPage(
-    titlePanel("Spotify Search App"),
-    tabsetPanel(
-      tabPanel("Search by Artist", fluidRow(
-        column(6, artist_search$ui(ns("artist_search"))),
-        column(6,
-          # Use artist_profile UI which includes the image
-          # Include top tracks below the artist profile
-          artist_profile$ui(ns("artist_profile")),
-          artist_top_tracks$ui(ns("artist_top_tracks"))
+  page_fillable(
+    theme = bs_theme(bootswatch = "darkly"),
+    navbarPage(
+      title = "Spotify Search App",
+      tabPanel("Artist Profile",
+        layout_columns(
+          card(card_header("Artist Search"), artist_search$ui(ns("artist_search"))),
+          card(card_header("Artist Profile"), artist_profile$ui(ns("artist_profile"))),
+          card(card_header("Top Tracks"), artist_top_tracks$ui(ns("artist_top_tracks"))),
+          card(card_header("Related Artists"), related_artists$ui(ns("related_artists"))),
+          col_widths = breakpoints(
+            sm = c(6, 6, 6, 6),
+            md = c(6, 6, 6, 6),
+            lg = c(3, 3, 3, 3)
+          )
         )
-      )),
+      ),
       tabPanel("Search by Genre", genre_filter$ui(ns("genre_filter")))
     ),
-    uiOutput(ns("message"))  # Add a UI output for the message
+    tags$p("Spotify Search App!")  # Replace uiOutput with a static UI element
   )
 }
 
@@ -46,11 +53,9 @@ server <- function(id) {
     artist_profile$server("artist_profile", selected_artist_id)
     # Call artist top tracks server and pass the reactive selected_artist_id
     artist_top_tracks$server("artist_top_tracks", selected_artist_id)
+    # Call related artists server and pass the reactive selected_artist_id
+    related_artists$server("related_artists", selected_artist_id)
     # Call genre filter server logic
     genre_filter$server("genre_filter")
-    # Define the message output
-    output$message <- renderUI({
-      tags$p("Spotify Search App!")
-    })
   })
 }

@@ -1,7 +1,8 @@
 # artist_search.R
 box::use(
+  bslib[card, card_header, page_fillable, layout_sidebar],
   memoise[memoise],
-  shiny[...],#nolint
+  shiny[...], #nolint
   spotifyr[search_spotify],
 )
 
@@ -12,23 +13,19 @@ search_spotify_memo <- memoise(search_spotify)
 #' @export
 ui <- function(id) {
   ns <- NS(id)
-  fluidPage(
-    # Title of the page
-    titlePanel("Spotify Artist Search"),
-    sidebarLayout(
-      sidebarPanel(
-        # Input for artist name
-        textInput(ns("artist_name"), "Enter artist name", value = "Kendrick Lamar"),
-        # Button to trigger search
-        actionButton(ns("search"), "Search")
-      ),
-      mainPanel(
-        # Output to display artist information or error message
-        textOutput(ns("artist_info"))
-      )
+  page_fillable(
+    verticalLayout(
+      # Input for artist name
+      textInput(ns("artist_name"), "Enter artist name", value = "Kendrick Lamar",
+                placeholder = "Type artist name here..."),
+      # Button to trigger search
+      actionButton(ns("search"), "Search"),
+      # Output to display artist information or error message
+      textOutput(ns("artist_info"))
     )
   )
 }
+
 # Server function for the module
 #' @export
 server <- function(id, selected_artist_id) {

@@ -2,77 +2,72 @@
 
 # Import necessary libraries and functions
 box::use(
-  htmltools[tagList],
+  bslib[breakpoints, card, layout_columns, page_fillable],
+  grDevices[colorRampPalette],
+  htmltools[HTML],
   memoise[memoise],
-  shiny[...], #nolint
-  spotifyr[get_artist, get_related_artists],
+  shiny[...], # nolint
+  spotifyr[get_artist],
 )
 
-# Memoize the Spotify API functions for caching
+# Memoize the Spotify API function for caching
 get_artist_memo <- memoise(get_artist)
-get_related_artists_memo <- memoise(get_related_artists)
+
+generate_svg_circle <- function(popularity_value) {
+  popularity_value <- as.numeric(popularity_value)
+  # Calculate the radius of the circle
+  radius <- 10 + 15 * (popularity_value / 100)
+  # Interpolate the color from red (popularity = 0) to green (popularity = 100)
+  circle_colour_picker <- colorRampPalette(c("#B91d1d", "#ED8E11", "#EDDE11", "#1DB954"))
+  # There are 101 colour values since popularity ranges from 0 to 100
+  color <- circle_colour_picker(101)[popularity_value + 1]
+  # Generate the SVG code for the circle
+  svg_code <- sprintf(
+    '<svg height="%1$s" width="%6$s"><circle cx="%3$s" cy="%2$s" r="%2$s" stroke="none" stroke-width="0" fill="%5$s" /><text class="circle-text" x="%3$s" y="%2$s" font-size="%4$s" fill="white" text-anchor="middle" dy=".3em">%7$s</text></svg>', # nolint
+    2 * radius, # SVG height
+    radius, # Circle center y
+    radius + 80, # Circle center x (shifted to the right)
+    radius * 0.6, # Font size based on radius
+    color, # Fill color used also for stroke
+    2 * radius + 100, # SVG width to accommodate the text
+    popularity_value # Text to display inside the circle
+  )
+  return(svg_code)
+}
 
 # UI function for the artist profile
 #' @export
 ui <- function(id) {
   ns <- NS(id)
-  # Note: No need to include uiOutput for artist_image here
-  fluidPage(
-    titlePanel("Artist Profile"),
-    uiOutput(ns("profile_content"))  # Dynamic output for profile content
+  page_fillable(
+    layout_columns(
+      card(
+        htmlOutput(ns("artist_image")),
+        tags$p(textOutput(ns("artist_name"))),
+        tags$div(
+          style = "display: flex; align-items: center;",
+          htmlOutput(ns("artist_popularity_circle"))
+        ),
+        tags$p(textOutput(ns("artist_genres")))
+      ),
+      col_widths = breakpoints(
+        sm = c(6),
+        md = c(12),
+        lg = c(12)
+      )
+    )
   )
 }
 
 # Helper function to fetch artist data
 fetch_artist_data <- function(artist_id) {
-  tryCatch({
-    get_artist_memo(artist_id)
-  }, error = function(e) {
-    NULL
-  })
-}
-
-# Helper function to fetch related artists
-fetch_related_artists <- function(artist_id) {
-  tryCatch({
-    get_related_artists_memo(artist_id)
-  }, error = function(e) {
-    NULL
-  })
-}
-
-# Helper function to render artist information
-render_artist_info <- function(ns, artist_info) {
-  fluidPage(fluidRow(
-    # Artist information
-    column(
-      6,
-      tags$h3("Artist Profile"),
-      tags$p(textOutput(ns("artist_name"))),
-      tags$p(textOutput(ns("artist_genres"))),
-      tags$p(textOutput(ns("artist_popularity")))
-    ),
-    # Related artists and image
-    column(
-      6,
-      uiOutput(ns("related_artists")),
-      uiOutput(ns("artist_image"))
-    )
-  ))
-}
-
-# Helper function to render related artists
-render_related_artists <- function(ns, related_artists) {
-  if (is.null(related_artists) ||
-        !is.data.frame(related_artists) ||
-        nrow(related_artists) == 0) {
-    return(tags$p("No related artists found."))
-  }
-  tagList(
-    tags$h3("Related Artists:"),
-    tags$ul(lapply(seq_len(min(5, nrow(related_artists))), function(i) {
-      tags$li(related_artists$name[i])
-    }))
+  tryCatch(
+    {
+      get_artist_memo(artist_id)
+    },
+    error = function(e) {
+      NULL
+    }
   )
 }
 
@@ -86,18 +81,19 @@ server <- function(id, artist_id) {
       req(artist_id())
       # Fetch artist data
       artist_info <- fetch_artist_data(artist_id())
-      # Fetch related artists
-      related_artists <- fetch_related_artists(artist_id())
-      # Render the UI for the artist profile
-      output$profile_content <- renderUI({
-        if (is.null(artist_info) || !is.list(artist_info)) {
-          return(tags$p("No artist information available."))
-        }
-        render_artist_info(ns, artist_info)
-      })
-      # Render artist's image dynamically (only the first image)
+      # Render artist's image dynamically (only the first image) and center it
       output$artist_image <- renderUI({
-        tags$img(src = artist_info$images$url[2])
+        if (!is.null(artist_info$images) && length(artist_info$images$url) > 1) {
+          tags$div(
+            style = "text-align: center;",
+            tags$img(
+              src = artist_info$images$url[2],
+              style = "max-width: 100%; height: auto; width: auto\\9;"
+            )
+          )
+        } else {
+          tags$p("Image not available.")
+        }
       })
       # Render artist's name
       output$artist_name <- renderText({
@@ -107,10 +103,14 @@ server <- function(id, artist_id) {
           "Name not available."
         }
       })
-      # Render artist's popularity
-      output$artist_popularity <- renderText({
+      # Render artist's popularity circle with "Popularity:" text
+      output$artist_popularity_circle <- renderUI({
         if (!is.null(artist_info$popularity)) {
-          paste("Popularity:", artist_info$popularity)
+          tags$div(
+            style = "display: flex; align-items: center;",
+            tags$p("Popularity:", style = "margin-right: 10px;"),
+            HTML(generate_svg_circle(artist_info$popularity))
+          )
         } else {
           "Popularity not available."
         }
@@ -122,10 +122,6 @@ server <- function(id, artist_id) {
         } else {
           "Genres not available."
         }
-      })
-      # Render related artists
-      output$related_artists <- renderUI({
-        render_related_artists(ns, related_artists)
       })
     })
   })
