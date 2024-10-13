@@ -1,15 +1,14 @@
 name: Rhino Test
 on:
-  # Run on pushes to 'main' branch
   push:
     branches:
       - main
-  # Run on any opened pull request
   pull_request:
-  # Run manually via GitHub Actions website
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
   main:
     name: Run linters and tests
@@ -38,6 +37,21 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 20
+
+      - name: Export Spotify Secrets as Env Variables
+        run: |
+          echo "SPOTIFY_CLIENT_ID=${{ secrets.SPOTIFY_CLIENT_ID }}" >> $GITHUB_ENV
+          echo "SPOTIFY_CLIENT_SECRET=${{ secrets.SPOTIFY_CLIENT_SECRET }}" >> $GITHUB_ENV
+
+      - name: Pass Spotify Secrets to R
+        shell: Rscript {0}
+        run: |
+          Sys.setenv(SPOTIFY_CLIENT_ID = Sys.getenv("SPOTIFY_CLIENT_ID"))
+          Sys.setenv(SPOTIFY_CLIENT_SECRET = Sys.getenv("SPOTIFY_CLIENT_SECRET"))
+
+          # Confirming the variables are available (for debugging, remove in production)
+          print(Sys.getenv("SPOTIFY_CLIENT_ID"))
+          print(Sys.getenv("SPOTIFY_CLIENT_SECRET"))
 
       - name: Lint R
         if: always()
@@ -73,7 +87,7 @@ jobs:
         if: always()
         uses: cypress-io/github-action@v6
         with:
-          working-directory: .rhino # Created by earlier commands which use Node.js
+          working-directory: .rhino
           start: npm run run-app
           project: ../tests
           wait-on: 'http://localhost:3333/'
