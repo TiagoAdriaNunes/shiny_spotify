@@ -1,5 +1,11 @@
 # This file allows packrat (used by rsconnect during deployment) to pick up dependencies.
+library(bsicons)
+library(bslib)
+library(DT)
 library(htmltools)
+library(packrat)
+library(reactable)
+library(reshape2)
 library(rhino)
 library(shiny)
 library(spotifyr)

@@ -9,6 +9,7 @@ box::use(
 
 test_that("main server works", {
   testServer(server, {
-    expect_true(grepl(x = output$message$html, pattern = "Spotify Search App!"))
+    session$setInputs(id = "test")
+    expect_true(grepl(x = output$message, pattern = "Spotify Search App!"))
   })
 })

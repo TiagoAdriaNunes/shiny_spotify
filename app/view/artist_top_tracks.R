@@ -12,8 +12,7 @@ get_artist_top_tracks_memoized <- memoise(get_artist_top_tracks)
 ui <- function(id) { #nolint
   ns <- NS(id)
   tagList(
-    tags$h3("Top Tracks"),
-    uiOutput(ns("top_tracks_list")),
+    htmlOutput(ns("top_tracks_list"))
   )
 }
 
