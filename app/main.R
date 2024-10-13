@@ -37,7 +37,7 @@ ui <- function(id) {
       ),
       tabPanel("Search by Genre", genre_filter$ui(ns("genre_filter")))
     ),
-    tags$p(id = ns("message"), "Spotify Search App!")  
+    tags$p(id = ns("message"), "Spotify Search App!")
   )
 }
 
