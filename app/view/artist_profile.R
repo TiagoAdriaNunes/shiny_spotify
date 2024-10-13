@@ -6,6 +6,7 @@ box::use(
   grDevices[colorRampPalette],
   htmltools[HTML],
   memoise[memoise],
+  scales[comma],
   shiny[...], # nolint
   spotifyr[get_artist],
 )
@@ -43,11 +44,12 @@ ui <- function(id) {
     layout_columns(
       card(
         htmlOutput(ns("artist_image")),
-        tags$p(textOutput(ns("artist_name"))),
+        tags$h3(textOutput(ns("artist_name"))),
         tags$div(
           style = "display: flex; align-items: center;",
           htmlOutput(ns("artist_popularity_circle"))
         ),
+        tags$p(textOutput(ns("artist_followers"))),
         tags$p(textOutput(ns("artist_genres")))
       ),
       col_widths = breakpoints(
@@ -81,7 +83,7 @@ server <- function(id, artist_id) {
       req(artist_id())
       # Fetch artist data
       artist_info <- fetch_artist_data(artist_id())
-      # Render artist's image dynamically (only the first image) and center it
+      # Render artist's image dynamically (only the second image) and center it
       output$artist_image <- renderUI({
         if (!is.null(artist_info$images) && length(artist_info$images$url) > 1) {
           tags$div(
@@ -98,7 +100,7 @@ server <- function(id, artist_id) {
       # Render artist's name
       output$artist_name <- renderText({
         if (!is.null(artist_info$name)) {
-          paste("Name:", artist_info$name)
+          paste(artist_info$name)
         } else {
           "Name not available."
         }
@@ -113,6 +115,14 @@ server <- function(id, artist_id) {
           )
         } else {
           "Popularity not available."
+        }
+      })
+      # Render artist's followers
+      output$artist_followers <- renderText({
+        if (!is.null(artist_info$followers$total)) {
+          paste("Followers:", comma(artist_info$followers$total))
+        } else {
+          "Followers not available."
         }
       })
       # Render artist's genres
