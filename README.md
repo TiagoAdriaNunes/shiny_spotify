@@ -1,6 +1,3 @@
-
-# shiny_spotify
-
 # Spotify Search App
 
 The Spotify Search App is a Shiny application that allows users to search for artists, view their profiles, explore their top tracks, and discover related artists. Additionally, users can search for artists by genre and visualize the top artists in that genre.
