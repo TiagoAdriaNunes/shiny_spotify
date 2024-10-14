@@ -37,7 +37,7 @@ To run the Spotify Search App locally, follow these steps:
     SPOTIFY_CLIENT_SECRET=your_client_secret
     ```
 
-4. **Use renv to install all the packages, in the terminal use:**:
+4. **Use renv to install all the packages, in the terminal use:**
     ```r
     renv::restore()
     ```
