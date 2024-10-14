@@ -16,7 +16,7 @@ ui <- function(id) {
   page_fillable(
     verticalLayout(
       # Input for artist name
-      textInput(ns("artist_name"), "Enter artist name", value = "Kendrick Lamar",
+      textInput(ns("artist_name"), "Enter artist name",
                 placeholder = "Type artist name here..."),
       # Button to trigger search
       actionButton(ns("search"), "Search"),
