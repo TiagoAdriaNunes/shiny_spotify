@@ -32,11 +32,10 @@ To run the Spotify Search App locally, follow these steps:
     install.packages(c("rhino", "renv"))
     ```
 
-3. **Create a .Renviron file with the Spotify API key/secret (who can be gerated in the url: [https://developer.spotify.com/dashboard/create]**:
+3. **Create a .Renviron file with the Spotify API key/secret (which can be generated at the following URL: [https://developer.spotify.com/dashboard/create](https://developer.spotify.com/dashboard/create)):**
     ```r
     SPOTIFY_CLIENT_ID=your_client_id
     SPOTIFY_CLIENT_SECRET=your_client_secret
-
     ```
 
 4. **Install the required packages**:
@@ -63,17 +62,21 @@ To run the Spotify Search App locally, follow these steps:
 - **related_artists.R**: Contains the UI and server logic for displaying related artists.
 - **genre_filter.R**: Contains the UI and server logic for searching artists by genre and displaying the top artists in that genre.
 
-## Usage
+## Features
 
 1. **Search for an Artist**:
     - Navigate to the "Artist Profile" tab.
     - Enter the name of the artist in the search box and click "Search".
-    - View the artist's profile, top tracks, and related artists.
+    - View the artist's profile, listen to top tracks, and see related artists in a network graph.
 
 2. **Search by Genre**:
     - Navigate to the "Search by Genre" tab.
     - Select a genre from the dropdown list and click "Search".
-    - View the top artists in the selected genre and their follower counts.
+    - View the table of artists of a select genre, popularity, number of followers and their genres.
+    - View the top 20 artists graph in the selected genre and their follower counts.
+
+3. **Cache**:
+    - Chace of the used requisitons with memoise to don't use new api calls for a content who is alread acessed.
 
 ## Dependencies
 
@@ -88,6 +91,21 @@ To run the Spotify Search App locally, follow these steps:
 - **grDevices**: For color manipulation.
 - **htmltools**: For HTML rendering.
 - **scales**: For formatting numbers.
+
+## Limitations and future fixing
+
+- There is no API rate limit usage control or substantial error handling regarding the API.
+- The main artist page loads slowly because it also loads data from related artists.
+- The app needs loaders to indicate when content is being loaded.
+- The UI, in general, needs more polishing.
+- The apexcharter graph needs more customization to properly display the data aligned with the background.
+- Proper handling of genre names is needed.
+- Proper handling of genre calls is required to display more artists. Currently, only 50 genres per genre call are visible,  but this can be expanded by managing API calls and pagination.
+- Currently, only the top 5 tracks are shown, but pagination can be added to display more tracks.
+- The search function for artists needs more refinement to show related search terms based on the user’s query.
+- Overall, the app needs better integration. For example, clicking a genre should display its artists on another tab, or    clicking an artist in the genre tab should redirect the user to the artist's profile page with their information loaded.
+- There are no trending artists or related information displayed.
+- There is no search functionality for songs.
 
 ## License
 
