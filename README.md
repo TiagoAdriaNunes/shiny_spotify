@@ -72,7 +72,6 @@ To run the Spotify Search App locally, follow these steps:
 3. **Cache**:
     - Cache of the used requisitions with memoise to avoid new API calls for content that has already been accessed.
 
-
 ## Dependencies
 
 - **shiny**: For building the web application.
@@ -87,7 +86,6 @@ To run the Spotify Search App locally, follow these steps:
 - **htmltools**: For HTML rendering.
 - **scales**: For formatting numbers.
 
-
 ## Areas for Enhancement
 - API Handling: At the moment, there is room to improve rate limit management and error handling to ensure a more robust experience.
 - Content Expansion: Currently, trending artists and related information are not displayed but could be valuable additions.
@@ -100,12 +98,3 @@ Search Functionality: Introducing a search feature for songs would significantly
 - UI Refinement: There is potential to further refine the interface to ensure a smoother and more polished presentation.
 - Enhanced data mining on artists and songs: Analyze which genres feature the most popular artists or songs, and explore their characteristics such as tempo, danceability, and more.
 - Graph Customization: The Apexcharter and artist network graph is functional but could benefit from additional customization to align data presentation more closely with the background.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Acknowledgements
-
-- This app uses the [Spotify Web API](https://developer.spotify.com/documentation/web-api/) to fetch artist data.
-- Special thanks to the developers of the R packages used in this project.
