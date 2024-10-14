@@ -165,6 +165,23 @@
       ],
       "Hash": "f27411eb6d9c3dada5edd444b8416675"
     },
+    "apexcharter": {
+      "Package": "apexcharter",
+      "Version": "0.4.4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "ggplot2",
+        "htmltools",
+        "htmlwidgets",
+        "jsonlite",
+        "magrittr",
+        "rlang",
+        "shiny"
+      ],
+      "Hash": "4bad120b4c71a078d8637f9cbe1eb1df"
+    },
     "askpass": {
       "Package": "askpass",
       "Version": "1.2.1",

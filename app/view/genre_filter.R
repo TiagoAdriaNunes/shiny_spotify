@@ -1,96 +1,68 @@
 # genre_filter.R
 box::use(
-  dplyr[`%>%`, select],
-  memoise[memoise],
+  apexcharter[apex, apexchartOutput, aes, ax_chart, ax_colors, ax_grid, ax_title, ax_xaxis, ax_yaxis], #nolint
+  dplyr[`%>%`, arrange, desc, mutate, select, slice], #nolint
+  memoise[memoise], #nolint
+  reactable[reactableOutput, renderReactable, colDef, colFormat, reactable, reactableTheme], #nolint
   shiny[...], #nolint
-  spotifyr[get_genre_artists],
+  spotifyr[get_genre_artists] #nolint
 )
 
-box::use(
-  app/config/genres,
-)
+box::use(app/config/genres[genres_list]) #nolint
 
-# Memoize the Spotify API function to enable caching
-get_genre_artists_memo <- memoise(get_genre_artists)
+# Memoized function for caching API calls
+get_genre_artists_memo <- memoise::memoise(get_genre_artists)
 
-# UI function for genre filter
-#' @export
-ui <- function(id) {
-  ns <- NS(id)
-  fluidPage(
-    titlePanel("Find Artists by Genre"),
-    sidebarLayout(
-      sidebarPanel(
-        selectizeInput(
+# UI function
+ui <- function(id) { #nolint
+  ns <- shiny::NS(id)
+  shiny::fluidPage(
+    shiny::titlePanel("Find Artists by Genre"),
+    shiny::sidebarLayout(
+      shiny::sidebarPanel(
+        shiny::selectizeInput(
           ns("genre"), "Select Genre",
-          choices = NULL,  # Allow any genre to be input
+          choices = c("", genres_list),
+          selected = NULL,
           options = list(
-            create = TRUE,  # Allows user to input new genres
+            create = TRUE,
             placeholder = "Type or select a genre"
           )
         ),
-        textInput(ns("market"), "Enter Country Code (Optional)", placeholder = "e.g., US"),
-        numericInput(ns("limit"), "Limit of Results", value = 10, min = 1, max = 50),
-        actionButton(ns("search"), "Search Artists")
+        shiny::actionButton(ns("search"), "Search")
       ),
-      mainPanel(
-        tableOutput(ns("artist_table")),
-        uiOutput(ns("message"))  # Output area for informative messages
+      shiny::mainPanel(
+        reactable::reactableOutput(ns("artist_table")),
+        apexcharter::apexchartOutput(ns("followers_chart")),
+        shiny::textOutput(ns("message"))
       )
     )
   )
 }
 
-# Server function for genre filter
-#' @export
-server <- function(id) {
-  moduleServer(id, function(input, output, session) {
-    ns <- session$ns  # Use session to define ns within the server
-
-    # Update selectizeInput choices on the client side
-    observe({
-      updateSelectizeInput(session, "genre",
-        choices = genres$genres_list,
-        server = FALSE  # Load choices client-side to allow create = TRUE to work
-      )
-    })
-
-    observeEvent(input$search, {
-      req(input$genre)  # Ensure a genre is inputted
-
-      # Attempt to retrieve artists for the inputted genre
+# Server function
+server <- function(id) { #nolint
+  shiny::moduleServer(id, function(input, output, session) {
+    shiny::observeEvent(input$search, {
+      shiny::req(input$genre)
       artist_results <- tryCatch({
-        if (input$market == "") {
-          get_genre_artists_memo(
-            genre = input$genre,
-            limit = input$limit
-          )
-        } else {
-          get_genre_artists_memo(
-            genre = input$genre,
-            market = input$market,
-            limit = input$limit
-          )
-        }
+        # Default limit set to 50 as API only accept this max value
+        get_genre_artists_memo(genre = input$genre, limit = 50)
       }, error = function(e) {
-        # Handle API errors
-        output$message <- renderUI({
-          tags$p("An error occurred: ", e$message)
-        })
+        output$message <- shiny::renderText(
+                                            { paste("An error occurred:", e$message) })
         NULL
       })
-
-      # Check if any artists were found
       if (is.null(artist_results) || nrow(artist_results) == 0) {
-        output$artist_table <- renderTable({
-          NULL  # Clear the table output
-        })
-        output$message <- renderUI({
-          tags$p("No artists found for the genre '",
-                 tags$b(input$genre),
-                 "'. Please try a different genre.")
+        output$artist_table <- reactable::renderReactable(
+                                                          { NULL })
+        output$followers_chart <- apexcharter::renderApexchart(
+                                                               { NULL })
+        output$message <- shiny::renderText({
+          paste("No artists found for the genre '", input$genre, "'. Please try a different genre.")
         })
       } else {
+<<<<<<< HEAD
 <<<<<<< Updated upstream
         # Clear any previous messages
         output$message <- renderUI({
@@ -101,6 +73,12 @@ server <- function(id) {
         artist_results <- artist_results %>%
           dplyr::mutate(genres = sapply(genres, function(g) paste(g, collapse = ", "))) %>%
           dplyr::arrange(desc(followers.total), desc(popularity))
+=======
+        output$message <- shiny::renderText(
+                                            { "" })
+        artist_results <- artist_results %>%
+          dplyr::mutate(genres = sapply(genres, function(g) paste(g, collapse = ", ")))
+>>>>>>> 01871846b809ee245f10ca720488ea322eb0b252
         # Filter to top 20 artists by followers
         top_20_artists <- artist_results %>%
           dplyr::arrange(desc(followers.total)) %>%
@@ -145,12 +123,37 @@ server <- function(id) {
             showPageSizeOptions = TRUE,
             pageSizeOptions = c(10, 20, 50)
           )
+<<<<<<< HEAD
 >>>>>>> Stashed changes
+=======
+>>>>>>> 01871846b809ee245f10ca720488ea322eb0b252
         })
-        # Display the artist results
-        output$artist_table <- renderTable({
-          artist_results %>%
-            select(name, popularity, followers.total)  # Show relevant columns
+        output$followers_chart <- apexcharter::renderApexchart({
+          apexcharter::apex(
+            data = top_20_artists,
+            type = "bar",
+            mapping = apexcharter::aes(x = name, y = followers.total)
+          ) %>%
+            apexcharter::ax_title(text = "Top 20 Artists by Total Followers in this genre") %>%
+            apexcharter::ax_xaxis(
+              title = list(text = "Artist"),
+              labels = list(style = list(colors = "#E0E0E0")),
+              axisBorder = list(show = TRUE, color = "#444444"),
+              axisTicks = list(show = TRUE, color = "#444444")
+            ) %>%
+            apexcharter::ax_yaxis(
+              title = list(text = "Total Followers"),
+              labels = list(style = list(colors = "#E0E0E0")),
+              axisBorder = list(show = TRUE, color = "#444444"),
+              axisTicks = list(show = TRUE, color = "#444444")
+            ) %>%
+            apexcharter::ax_chart(
+              background = "#2B2B2B"
+            ) %>%
+            apexcharter::ax_colors("#1F77B4") %>%
+            apexcharter::ax_grid(
+              borderColor = "#444444"
+            )
         })
       }
     })
