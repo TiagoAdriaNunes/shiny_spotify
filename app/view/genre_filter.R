@@ -62,26 +62,13 @@ server <- function(id) { #nolint
           paste("No artists found for the genre '", input$genre, "'. Please try a different genre.")
         })
       } else {
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-        # Clear any previous messages
-        output$message <- renderUI({
-          NULL
-=======
         output$message <- shiny::renderText(
                                             { "" })
         artist_results <- artist_results %>%
           dplyr::mutate(genres = sapply(genres, function(g) paste(g, collapse = ", "))) %>%
           dplyr::arrange(desc(followers.total), desc(popularity))
-=======
-        output$message <- shiny::renderText(
-                                            { "" })
-        artist_results <- artist_results %>%
-          dplyr::mutate(genres = sapply(genres, function(g) paste(g, collapse = ", ")))
->>>>>>> 01871846b809ee245f10ca720488ea322eb0b252
         # Filter to top 20 artists by followers
         top_20_artists <- artist_results %>%
-          dplyr::arrange(desc(followers.total)) %>%
           dplyr::slice(1:20)
         output$artist_table <- reactable::renderReactable({
           reactable::reactable(
@@ -123,10 +110,6 @@ server <- function(id) { #nolint
             showPageSizeOptions = TRUE,
             pageSizeOptions = c(10, 20, 50)
           )
-<<<<<<< HEAD
->>>>>>> Stashed changes
-=======
->>>>>>> 01871846b809ee245f10ca720488ea322eb0b252
         })
         output$followers_chart <- apexcharter::renderApexchart({
           apexcharter::apex(

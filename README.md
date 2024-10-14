@@ -1,18 +1,12 @@
-<<<<<<< HEAD
-<<<<<<< Updated upstream
+
 # shiny_spotify
-=======
-=======
->>>>>>> 01871846b809ee245f10ca720488ea322eb0b252
+
 # Spotify Search App
 
 The Spotify Search App is a Shiny application that allows users to search for artists, view their profiles, explore their top tracks, and discover related artists. Additionally, users can search for artists by genre and visualize the top artists in that genre.
 
-<<<<<<< HEAD
 This app is built using Rhino, a Shiny enterprise standard framework, which provides a structured and scalable way to develop Shiny applications.
 
-=======
->>>>>>> 01871846b809ee245f10ca720488ea322eb0b252
 ## Features
 
 ### Artist Profile
@@ -49,10 +43,7 @@ To run the Spotify Search App locally, follow these steps:
     SPOTIFY_CLIENT_SECRET=your_client_secret
     ```
 
-<<<<<<< HEAD
 4. **Use renv to install all the packages, in the terminal use:**
-=======
-4. **Install the required packages**:
     ```r
     install.packages(c("rhino", "renv"))
     ```
@@ -63,11 +54,7 @@ To run the Spotify Search App locally, follow these steps:
     renv::restore()
     ```
 
-<<<<<<< HEAD
-5. **Run the app**:
-=======
 6. **Run the app**:
->>>>>>> 01871846b809ee245f10ca720488ea322eb0b252
     ```r
     rhino::runApp()
     ```
@@ -95,11 +82,8 @@ To run the Spotify Search App locally, follow these steps:
     - View the top 20 artists graph in the selected genre and their follower counts.
 
 3. **Cache**:
-<<<<<<< HEAD
     - Cache of the used requisitions with memoise to avoid new API calls for content that has already been accessed.
-=======
-    - Chace of the used requisitons with memoise to don't use new api calls for a content who is alread acessed.
->>>>>>> 01871846b809ee245f10ca720488ea322eb0b252
+
 
 ## Dependencies
 
@@ -115,11 +99,8 @@ To run the Spotify Search App locally, follow these steps:
 - **htmltools**: For HTML rendering.
 - **scales**: For formatting numbers.
 
-<<<<<<< HEAD
+
 ## Limitations and Future Fixes
-=======
-## Limitations and future fixing
->>>>>>> 01871846b809ee245f10ca720488ea322eb0b252
 
 - There is no API rate limit usage control or substantial error handling regarding the API.
 - The main artist page loads slowly because it also loads data from related artists.
@@ -127,17 +108,10 @@ To run the Spotify Search App locally, follow these steps:
 - The UI, in general, needs more polishing.
 - The apexcharter graph needs more customization to properly display the data aligned with the background.
 - Proper handling of genre names is needed.
-<<<<<<< HEAD
-- Proper handling of genre calls is required to display more artists. Currently, only 50 genres per genre call are visible, but this can be expanded by managing API calls and pagination.
-- Currently, only the top 5 tracks are shown, but pagination can be added to display more tracks.
-- The search function for artists needs more refinement to show related search terms based on the user’s query.
-- Overall, the app needs better integration. For example, clicking a genre should display its artists on another tab, or clicking an artist in the genre tab should redirect the user to the artist's profile page with their information loaded.
-=======
 - Proper handling of genre calls is required to display more artists. Currently, only 50 genres per genre call are visible,  but this can be expanded by managing API calls and pagination.
 - Currently, only the top 5 tracks are shown, but pagination can be added to display more tracks.
 - The search function for artists needs more refinement to show related search terms based on the user’s query.
 - Overall, the app needs better integration. For example, clicking a genre should display its artists on another tab, or    clicking an artist in the genre tab should redirect the user to the artist's profile page with their information loaded.
->>>>>>> 01871846b809ee245f10ca720488ea322eb0b252
 - There are no trending artists or related information displayed.
 - There is no search functionality for songs.
 
@@ -149,7 +123,3 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 - This app uses the [Spotify Web API](https://developer.spotify.com/documentation/web-api/) to fetch artist data.
 - Special thanks to the developers of the R packages used in this project.
-<<<<<<< HEAD
->>>>>>> Stashed changes
-=======
->>>>>>> 01871846b809ee245f10ca720488ea322eb0b252
