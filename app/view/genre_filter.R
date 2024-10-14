@@ -1,20 +1,17 @@
 # genre_filter.R
 box::use(
+  app/config/genres[genres_list],
   dplyr[`%>%`, select],
   memoise[memoise],
-  shiny[...], #nolint
+  shiny[...],
   spotifyr[get_genre_artists],
+  reactable[colDef, reactable, reactableOutput, renderReactable, reactableTheme]
 )
 
-box::use(
-  app/config/genres,
-)
-
-# Memoize the Spotify API function to enable caching
+# Memoized function for caching API calls
 get_genre_artists_memo <- memoise(get_genre_artists)
 
-# UI function for genre filter
-#' @export
+# UI function
 ui <- function(id) {
   ns <- NS(id)
   fluidPage(
@@ -23,82 +20,78 @@ ui <- function(id) {
       sidebarPanel(
         selectizeInput(
           ns("genre"), "Select Genre",
-          choices = NULL,  # Allow any genre to be input
+          choices = c("", genres_list),
+          selected = NULL,
           options = list(
-            create = TRUE,  # Allows user to input new genres
+            create = TRUE,
             placeholder = "Type or select a genre"
           )
         ),
-        textInput(ns("market"), "Enter Country Code (Optional)", placeholder = "e.g., US"),
-        numericInput(ns("limit"), "Limit of Results", value = 10, min = 1, max = 50),
-        actionButton(ns("search"), "Search Artists")
+        actionButton(ns("search"), "Search")
       ),
       mainPanel(
-        tableOutput(ns("artist_table")),
-        uiOutput(ns("message"))  # Output area for informative messages
+        reactableOutput(ns("artist_table")),
+        textOutput(ns("message"))
       )
     )
   )
 }
 
-# Server function for genre filter
-#' @export
+# Server function
 server <- function(id) {
   moduleServer(id, function(input, output, session) {
-    ns <- session$ns  # Use session to define ns within the server
-
-    # Update selectizeInput choices on the client side
-    observe({
-      updateSelectizeInput(session, "genre",
-        choices = genres$genres_list,
-        server = FALSE  # Load choices client-side to allow create = TRUE to work
-      )
-    })
-
     observeEvent(input$search, {
-      req(input$genre)  # Ensure a genre is inputted
-
-      # Attempt to retrieve artists for the inputted genre
+      req(input$genre)
       artist_results <- tryCatch({
-        if (input$market == "") {
-          get_genre_artists_memo(
-            genre = input$genre,
-            limit = input$limit
-          )
-        } else {
-          get_genre_artists_memo(
-            genre = input$genre,
-            market = input$market,
-            limit = input$limit
-          )
-        }
+        # Default limit set to 50 as API only accept this max value
+        get_genre_artists_memo(genre = input$genre, limit = 50)
       }, error = function(e) {
-        # Handle API errors
-        output$message <- renderUI({
-          tags$p("An error occurred: ", e$message)
-        })
+        output$message <- renderText({ paste("An error occurred:", e$message) })
         NULL
       })
-
-      # Check if any artists were found
       if (is.null(artist_results) || nrow(artist_results) == 0) {
-        output$artist_table <- renderTable({
-          NULL  # Clear the table output
-        })
-        output$message <- renderUI({
-          tags$p("No artists found for the genre '",
-                 tags$b(input$genre),
-                 "'. Please try a different genre.")
+        output$artist_table <- renderReactable({ NULL })
+        output$message <- renderText({
+          paste("No artists found for the genre '", input$genre, "'. Please try a different genre.")
         })
       } else {
-        # Clear any previous messages
-        output$message <- renderUI({
-          NULL
-        })
-        # Display the artist results
-        output$artist_table <- renderTable({
-          artist_results %>%
-            select(name, popularity, followers.total)  # Show relevant columns
+        output$message <- renderText({ "" })
+        output$artist_table <- renderReactable({
+          reactable(
+            artist_results %>% select(name, popularity, followers.total),
+            columns = list(
+              name = colDef(name = "Name"),
+              popularity = colDef(name = "Popularity"),
+              followers.total = colDef(name = "Followers")
+            ),
+            theme = reactableTheme(
+              backgroundColor = "#2B2B2B",
+              color = "#E0E0E0",
+              borderColor = "#444444",
+              headerStyle = list(
+                backgroundColor = "#1F1F1F",
+                color = "#E0E0E0"
+              ),
+              tableBodyStyle = list(
+                backgroundColor = "#2B2B2B"
+              ),
+              rowHighlightStyle = list(
+                backgroundColor = "#3A3A3A"
+              ),
+              paginationStyle = list(
+                backgroundColor = "#1F1F1F",
+                color = "#E0E0E0"
+              ),
+              pageButtonHoverStyle = list(
+                backgroundColor = "#3A3A3A"
+              )
+            ),
+            pagination = TRUE,
+            paginationType = "simple",
+            defaultPageSize = 10,
+            showPageSizeOptions = TRUE,
+            pageSizeOptions = c(10, 20, 50)
+          )
         })
       }
     })
