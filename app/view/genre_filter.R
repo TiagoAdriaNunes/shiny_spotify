@@ -1,11 +1,11 @@
 # genre_filter.R
 box::use(
-  apexcharter[apex, apexchartOutput, aes, ax_chart, ax_colors, ax_grid, ax_title, ax_xaxis, ax_yaxis], #nolint
-  dplyr[`%>%`, arrange, desc, mutate, select, slice], #nolint
-  memoise[memoise], #nolint
-  reactable[reactableOutput, renderReactable, colDef, colFormat, reactable, reactableTheme], #nolint
-  shiny[...], #nolint
-  spotifyr[get_genre_artists] #nolint
+  apexcharter[apex, apexchartOutput, aes, ax_chart, ax_colors, ax_grid, ax_title, ax_tooltip, ax_xaxis, ax_yaxis], # nolint
+  dplyr[`%>%`, arrange, desc, mutate, select, slice], # nolint
+  memoise[memoise], # nolint
+  reactable[reactableOutput, renderReactable, colDef, colFormat, reactable, reactableTheme], # nolint
+  shiny[...], # nolint
+  spotifyr[get_genre_artists] # nolint
 )
 
 box::use(app/config/genres[genres_list]) #nolint
@@ -78,7 +78,7 @@ server <- function(id) { #nolint
               popularity = reactable::colDef(name = "Popularity"),
               followers.total = reactable::colDef(
                 name = "Followers",
-                format = reactable::colFormat(separators = TRUE)
+                format = reactable::colFormat(separators = TRUE, locales = "en-US")
               ),
               genres = reactable::colDef(name = "Genres")
             ),
@@ -136,6 +136,9 @@ server <- function(id) { #nolint
             apexcharter::ax_colors("#1F77B4") %>%
             apexcharter::ax_grid(
               borderColor = "#444444"
+            ) %>%
+            apexcharter::ax_tooltip(
+              theme = "dark"
             )
         })
       }

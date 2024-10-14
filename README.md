@@ -7,6 +7,8 @@ The Spotify Search App is a Shiny application that allows users to search for ar
 
 This app is built using Rhino, a Shiny enterprise standard framework, which provides a structured and scalable way to develop Shiny applications.
 
+The app is hosted at shinyapps.io: [https://tiagoadrianunes.shinyapps.io/shiny_spotify/](https://tiagoadrianunes.shinyapps.io/shiny_spotify/)
+
 ## Features
 
 ### Artist Profile
@@ -28,33 +30,22 @@ To run the Spotify Search App locally, follow these steps:
 
 1. **Clone the repository**:
     ```sh
-    git clone https://github.com/yourusername/spotify-search-app.git
+    git clone https://github.com/tiagoadrianunes/spotify-search-app.git
     cd spotify-search-app
     ```
 
-2. **Install the required packages**:
-    ```r
-    install.packages(c("rhino", "renv"))
-    ```
-
-3. **Create a .Renviron file with the Spotify API key/secret (which can be generated at the following URL: [https://developer.spotify.com/dashboard/create](https://developer.spotify.com/dashboard/create)):**
+2. **Create a .Renviron file with the Spotify API key/secret (which can be generated at the following URL: [https://developer.spotify.com/dashboard/create](https://developer.spotify.com/dashboard/create)):**
     ```r
     SPOTIFY_CLIENT_ID=your_client_id
     SPOTIFY_CLIENT_SECRET=your_client_secret
     ```
 
-4. **Use renv to install all the packages, in the terminal use:**
-    ```r
-    install.packages(c("rhino", "renv"))
-    ```
-
-5. **Use renv to install all the packages, in the terminal use:**:
->>>>>>> 01871846b809ee245f10ca720488ea322eb0b252
+4. **Use renv to install all the packages, in the terminal use:**:
     ```r
     renv::restore()
     ```
 
-6. **Run the app**:
+5. **Run the app**:
     ```r
     rhino::runApp()
     ```
@@ -100,20 +91,18 @@ To run the Spotify Search App locally, follow these steps:
 - **scales**: For formatting numbers.
 
 
-## Limitations and Future Fixes
+## Areas for Enhancement
+- API Handling: At the moment, there is room to improve rate limit management and error handling to ensure a more robust experience.
+- Content Expansion: Currently, trending artists and related information are not displayed but could be valuable additions.
+Search Functionality: Introducing a search feature for songs would significantly enhance user interaction.
 
-- There is no API rate limit usage control or substantial error handling regarding the API.
-- The main artist page loads slowly because it also loads data from related artists.
-- The app needs loaders to indicate when content is being loaded.
-- The UI, in general, needs more polishing.
-- The apexcharter graph needs more customization to properly display the data aligned with the background.
-- Proper handling of genre names is needed.
-- Proper handling of genre calls is required to display more artists. Currently, only 50 genres per genre call are visible,  but this can be expanded by managing API calls and pagination.
-- Currently, only the top 5 tracks are shown, but pagination can be added to display more tracks.
-- The search function for artists needs more refinement to show related search terms based on the user’s query.
-- Overall, the app needs better integration. For example, clicking a genre should display its artists on another tab, or    clicking an artist in the genre tab should redirect the user to the artist's profile page with their information loaded.
-- There are no trending artists or related information displayed.
-- There is no search functionality for songs.
+## Opportunities for Future Improvements
+- Track Display: The app currently showcases the top 5 tracks, with potential to introduce pagination for broader exploration.
+- Performance Optimization: The main artist page’s load time could be improved by optimizing how related artist data is fetched.
+- Loading Indicators: Adding loaders would provide visual feedback during content loading, enhancing the user experience.
+- UI Refinement: There is potential to further refine the interface to ensure a smoother and more polished presentation.
+- Enhanced data mining on artists and songs: Analyze which genres feature the most popular artists or songs, and explore their characteristics such as tempo, danceability, and more.
+- Graph Customization: The Apexcharter and artist network graph is functional but could benefit from additional customization to align data presentation more closely with the background.
 
 ## License
 
