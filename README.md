@@ -50,11 +50,11 @@ To run the Spotify Search App locally, follow these steps:
 ## File Structure
 
 - **main.R**: The main file that defines the top-level UI and server functions.
-- **artist_search.R**: Contains the UI and server logic for searching artists by name.
-- **artist_profile.R**: Contains the UI and server logic for displaying the artist's profile.
-- **artist_top_tracks.R**: Contains the UI and server logic for displaying the artist's top tracks.
-- **related_artists.R**: Contains the UI and server logic for displaying related artists.
-- **genre_filter.R**: Contains the UI and server logic for searching artists by genre and displaying the top artists in that genre.
+- **artist_search.R**: Contains the module for searching artists by name.
+- **artist_profile.R**: Contains the module for displaying the artist's profile.
+- **artist_top_tracks.R**: Contains the module for displaying the artist's top tracks.
+- **related_artists.R**: Contains the module for displaying related artists.
+- **genre_filter.R**: Contains the module for searching artists by genre and displaying the top artists in that genre.
 
 ## Features
 
