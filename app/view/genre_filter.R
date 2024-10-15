@@ -8,19 +8,19 @@ box::use(
   spotifyr[get_genre_artists] # nolint
 )
 
-box::use(app/config/genres[genres_list]) #nolint
+box::use(app/config/genres[genres_list]) # nolint
 
 # Memoized function for caching API calls
-get_genre_artists_memo <- memoise::memoise(get_genre_artists)
+get_genre_artists_memo <- memoise(get_genre_artists)
 
 # UI function
-ui <- function(id) { #nolint
-  ns <- shiny::NS(id)
-  shiny::fluidPage(
-    shiny::titlePanel("Find Artists by Genre"),
-    shiny::sidebarLayout(
-      shiny::sidebarPanel(
-        shiny::selectizeInput(
+ui <- function(id) { # nolint
+  ns <- NS(id)
+  fluidPage(
+    titlePanel("Find Artists by Genre"),
+    sidebarLayout(
+      sidebarPanel(
+        selectizeInput(
           ns("genre"), "Select Genre",
           choices = c("", genres_list),
           selected = NULL,
@@ -32,9 +32,9 @@ ui <- function(id) { #nolint
         shiny::actionButton(ns("search"), "Search")
       ),
       shiny::mainPanel(
-        reactable::reactableOutput(ns("artist_table")),
-        apexcharter::apexchartOutput(ns("followers_chart")),
-        shiny::textOutput(ns("message"))
+        reactableOutput(ns("artist_table")),
+        apexchartOutput(ns("followers_chart")),
+        textOutput(ns("message"))
       )
     )
   )

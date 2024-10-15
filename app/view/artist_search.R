@@ -28,7 +28,7 @@ ui <- function(id) {
 
 # Server function for the module
 #' @export
-server <- function(id, selected_artist_id) {
+server <- function(id, selected_artist_id, selected_artist_name) {
   moduleServer(id, function(input, output, session) {
     observeEvent(input$search, {
       req(input$artist_name)  # Ensure artist_name input is not empty
@@ -39,6 +39,8 @@ server <- function(id, selected_artist_id) {
         artist_name <- artist_result$name[1]  # Get the artist name
         # Store the artist ID in the reactive value
         selected_artist_id(artist_id)
+        # Store the artist name in the reactive value
+        selected_artist_name(artist_name)
         # Display artist's name in the output
         output$artist_info <- renderText({
           paste("Found artist:", artist_name)

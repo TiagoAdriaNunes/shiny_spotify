@@ -64,16 +64,16 @@ render_related_artists_network <- function(ns, artist_id, artist_name, related_a
 
   # Mapping from artist IDs to node IDs
   artist_id_to_node_id <- list()
-  node_id_counter <- 1  # Start with 1 for the main artist
+  node_id_counter <- 1
   artist_id_to_node_id[[artist_id]] <- node_id_counter
 
-  # Add main artist node
-  nodes <- rbind(nodes, data.frame(
-    id = node_id_counter,
-    label = artist_name,
-    title = artist_name,
-    stringsAsFactors = FALSE
-  ))
+# Add main artist node
+nodes <- rbind(nodes, data.frame(
+  id = node_id_counter,
+  label = artist_name,
+  title = artist_name,
+  stringsAsFactors = FALSE
+))
 
   # Function to add artist to nodes if not already present
   add_artist_node <- function(artist_id_inner, artist_name_inner) {
@@ -132,7 +132,7 @@ render_related_artists_network <- function(ns, artist_id, artist_name, related_a
 
 # Server function for the related artists
 #' @export
-server <- function(id, artist_id, artist_name = reactive("")) {
+server <- function(id, artist_id, artist_name = reactive(artist_name)) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     # React to artist_id changes
