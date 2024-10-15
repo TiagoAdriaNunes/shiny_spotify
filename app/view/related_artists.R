@@ -68,12 +68,12 @@ render_related_artists_network <- function(ns, artist_id, artist_name, related_a
   artist_id_to_node_id[[artist_id]] <- node_id_counter
 
   # Add main artist node
-nodes <- rbind(nodes, data.frame(
-  id = node_id_counter,
-  label = artist_name,
-  title = artist_name,
-  stringsAsFactors = FALSE
-))
+  nodes <- rbind(nodes, data.frame(
+    id = node_id_counter,
+    label = artist_name,
+    title = artist_name,
+    stringsAsFactors = FALSE
+  ))
 
   # Function to add artist to nodes if not already present
   add_artist_node <- function(artist_id_inner, artist_name_inner) {
