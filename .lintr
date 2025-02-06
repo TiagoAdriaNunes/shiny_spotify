@@ -1,5 +1,13 @@
-linters:
-  linters_with_defaults(
-    defaults = box.linters::rhino_default_linters,
-    line_length_linter = line_length_linter(100)
+linters: linters_with_defaults(
+  line_length_linter(120),
+  object_length_linter(50L),
+  object_usage_linter = NULL,
+  unused_import_linter(
+  allow_ns_usage = FALSE,
+  interpret_glue = TRUE
   )
+  )
+exclusions: list(
+  "tests/"
+  )
+encoding: "UTF-8"

@@ -6,7 +6,7 @@ box::use(
 )
 
 box::use(
-  app/logic/auth, #nolint
+  app/logic/auth,
   app/view/artist_profile,
   app/view/artist_search,
   app/view/artist_top_tracks,
@@ -19,15 +19,21 @@ box::use(
 ui <- function(id) {
   ns <- NS(id)
   page_fillable(
-    theme = bs_theme(bootswatch = "darkly"),
+    theme = bs_theme(
+      bootswatch = "darkly",
+      navbar_bg = "#1DB954",
+      navbar_light_color = "white"
+    ),
     navbarPage(
       title = "Spotify Search App",
+      inverse = TRUE,
+      windowTitle = "Spotify Search App",
       tabPanel("Artist Profile",
         layout_columns(
           card(card_header("Artist Search"), artist_search$ui(ns("artist_search"))),
           card(card_header("Artist Profile"), artist_profile$ui(ns("artist_profile"))),
           card(card_header("Top Tracks"), artist_top_tracks$ui(ns("artist_top_tracks"))),
-          card(card_header("Related Artists"), related_artists$ui(ns("related_artists"))),
+          card(card_header("Related Artists powered by Last.fm"), related_artists$ui(ns("related_artists"))),
           col_widths = breakpoints(
             sm = c(6, 6, 6, 6),
             md = c(6, 6, 6, 6),
@@ -55,8 +61,8 @@ server <- function(id) {
     artist_profile$server("artist_profile", selected_artist_id)
     # Call artist top tracks server and pass the reactive selected_artist_id
     artist_top_tracks$server("artist_top_tracks", selected_artist_id)
-    # Call related artists server and pass the reactive selected_artist_id
-    related_artists$server("related_artists", selected_artist_id, selected_artist_name)
+    # Call related artists server and pass only the artist name
+    related_artists$server("related_artists", selected_artist_name)
     # Call genre filter server logic
     genre_filter$server("genre_filter")
     # Define output$message

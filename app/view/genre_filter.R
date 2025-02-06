@@ -32,8 +32,8 @@ ui <- function(id) { # nolint
         shiny::actionButton(ns("search"), "Search")
       ),
       shiny::mainPanel(
-        reactableOutput(ns("artist_table")),
         apexchartOutput(ns("followers_chart")),
+        reactableOutput(ns("artist_table")),
         textOutput(ns("message"))
       )
     )
@@ -126,9 +126,13 @@ server <- function(id) { #nolint
             ) %>%
             apexcharter::ax_yaxis(
               title = list(text = "Total Followers"),
-              labels = list(style = list(colors = "#E0E0E0")),
+              labels = list(
+                style = list(colors = "#E0E0E0"),
+                formatter = htmlwidgets::JS("function(value) { return value.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ','); }") #nolint
+              ),
               axisBorder = list(show = TRUE, color = "#444444"),
-              axisTicks = list(show = TRUE, color = "#444444")
+              axisTicks = list(show = TRUE, color = "#444444"),
+              tickAmount = 10
             ) %>%
             apexcharter::ax_chart(
               background = "#2B2B2B"
