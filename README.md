@@ -31,10 +31,13 @@ To run the Spotify Search App locally, follow these steps:
     cd spotify-search-app
     ```
 
-2. **Create a .Renviron file with the Spotify API key/secret (which can be generated at the following URL: [https://developer.spotify.com/dashboard/create](https://developer.spotify.com/dashboard/create)):**
+2. **Create a .Renviron file with the Spotify API key/secret (which can be generated at the following URL: [https://developer.spotify.com/dashboard/create](https://developer.spotify.com/dashboard/create)) also with a API for last.fm [[https://www.last.fm/api/account/create](https://www.last.fm/api/authentication)] :**
     ```r
     SPOTIFY_CLIENT_ID=your_client_id
     SPOTIFY_CLIENT_SECRET=your_client_secret
+
+    LASTFM_API_KEY=your_lastfm_api_key
+    LASTFM_API_SECRET=your_last_lastm_secret_api
     ```
 
 4. **Use renv to install all the packages, in the terminal use:**
