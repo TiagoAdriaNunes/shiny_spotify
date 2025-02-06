@@ -37,7 +37,7 @@ To run the Spotify Search App locally, follow these steps:
     SPOTIFY_CLIENT_SECRET=your_client_secret
 
     LASTFM_API_KEY=your_lastfm_api_key
-    LASTFM_API_SECRET=your_last_lastm_secret_api
+    LASTFM_API_SECRET=your_lastm_secret_api
     ```
 
 4. **Use renv to install all the packages, in the terminal use:**
