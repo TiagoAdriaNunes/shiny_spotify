@@ -33,7 +33,6 @@ generate_svg_circle <- function(popularity_value) {
     2 * radius + 100, # SVG width to accommodate the text
     popularity_value # Text to display inside the circle
   )
-  return(svg_code)
 }
 
 # UI function for the artist profile
