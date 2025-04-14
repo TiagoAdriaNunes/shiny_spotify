@@ -47,7 +47,7 @@ To run the Spotify Search App locally, follow these steps:
 
 5. **Run the app**:
     ```r
-    rhino::runApp()
+    rhino::app()
     ```
 
 ## File Structure
