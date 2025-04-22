@@ -49,10 +49,6 @@ jobs:
           Sys.setenv(SPOTIFY_CLIENT_ID = Sys.getenv("SPOTIFY_CLIENT_ID"))
           Sys.setenv(SPOTIFY_CLIENT_SECRET = Sys.getenv("SPOTIFY_CLIENT_SECRET"))
 
-          # Confirming the variables are available (for debugging, remove in production)
-          print(Sys.getenv("SPOTIFY_CLIENT_ID"))
-          print(Sys.getenv("SPOTIFY_CLIENT_SECRET"))
-
       - name: Lint R
         if: always()
         shell: Rscript {0}
