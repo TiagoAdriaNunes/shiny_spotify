@@ -20,7 +20,7 @@ jobs:
       - name: Setup system dependencies
         run: |
           packages=(
-            # List each package on a separate line.
+            libwebp-dev
           )
           sudo apt-get update
           sudo apt-get install --yes "${packages[@]}"
