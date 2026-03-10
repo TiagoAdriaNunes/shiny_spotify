@@ -1,7 +1,8 @@
 # genre_filter.R
 box::use(
-  apexcharter[apex, apexchartOutput, aes, ax_chart, ax_colors, ax_grid, ax_title, ax_tooltip, ax_xaxis, ax_yaxis], # nolint
+  apexcharter[apex, apexchartOutput, renderApexchart, aes, ax_chart, ax_colors, ax_grid, ax_title, ax_tooltip, ax_xaxis, ax_yaxis], # nolint
   dplyr[`%>%`, arrange, desc, mutate, select, slice], # nolint
+  htmlwidgets[JS],
   memoise[memoise], # nolint
   reactable[reactableOutput, renderReactable, colDef, colFormat, reactable, reactableTheme], # nolint
   shiny[...], # nolint
@@ -29,9 +30,9 @@ ui <- function(id) { # nolint
             placeholder = "Type or select a genre"
           )
         ),
-        shiny::actionButton(ns("search"), "Search")
+        actionButton(ns("search"), "Search")
       ),
-      shiny::mainPanel(
+      mainPanel(
         apexchartOutput(ns("followers_chart")),
         reactableOutput(ns("artist_table")),
         textOutput(ns("message"))
@@ -42,47 +43,47 @@ ui <- function(id) { # nolint
 
 # Server function
 server <- function(id) { #nolint
-  shiny::moduleServer(id, function(input, output, session) {
-    shiny::observeEvent(input$search, {
-      shiny::req(input$genre)
+  moduleServer(id, function(input, output, session) {
+    observeEvent(input$search, {
+      req(input$genre)
       artist_results <- tryCatch({
         # Default limit set to 50 as API only accept this max value
         get_genre_artists_memo(genre = input$genre, limit = 50)
       }, error = function(e) {
-        output$message <- shiny::renderText(
+        output$message <- renderText(
                                             { paste("An error occurred:", e$message) })
         NULL
       })
       if (is.null(artist_results) || nrow(artist_results) == 0) {
-        output$artist_table <- reactable::renderReactable(
+        output$artist_table <- renderReactable(
                                                           { NULL })
-        output$followers_chart <- apexcharter::renderApexchart(
+        output$followers_chart <- renderApexchart(
                                                                { NULL })
-        output$message <- shiny::renderText({
+        output$message <- renderText({
           paste("No artists found for the genre '", input$genre, "'. Please try a different genre.")
         })
       } else {
-        output$message <- shiny::renderText(
+        output$message <- renderText(
                                             { "" })
-        artist_results <- artist_results %>%
-          dplyr::mutate(genres = sapply(genres, function(g) paste(g, collapse = ", "))) %>%
-          dplyr::arrange(desc(followers.total), desc(popularity))
+        artist_results <- artist_results |>
+          mutate(genres = sapply(genres, function(g) paste(g, collapse = ", "))) |>
+          arrange(desc(followers.total), desc(popularity))
         # Filter to top 20 artists by followers
-        top_20_artists <- artist_results %>%
-          dplyr::slice(1:20)
-        output$artist_table <- reactable::renderReactable({
-          reactable::reactable(
-            artist_results %>% dplyr::select(name, popularity, followers.total, genres),
+        top_20_artists <- artist_results |>
+          slice(1:20)
+        output$artist_table <- renderReactable({
+          reactable(
+            artist_results |> select(name, popularity, followers.total, genres),
             columns = list(
-              name = reactable::colDef(name = "Name"),
-              popularity = reactable::colDef(name = "Popularity"),
-              followers.total = reactable::colDef(
+              name = colDef(name = "Name"),
+              popularity = colDef(name = "Popularity"),
+              followers.total = colDef(
                 name = "Followers",
-                format = reactable::colFormat(separators = TRUE, locales = "en-US")
+                format = colFormat(separators = TRUE, locales = "en-US")
               ),
-              genres = reactable::colDef(name = "Genres")
+              genres = colDef(name = "Genres")
             ),
-            theme = reactable::reactableTheme(
+            theme = reactableTheme(
               backgroundColor = "#2B2B2B",
               color = "#E0E0E0",
               borderColor = "#444444",
@@ -111,37 +112,37 @@ server <- function(id) { #nolint
             pageSizeOptions = c(10, 20, 50)
           )
         })
-        output$followers_chart <- apexcharter::renderApexchart({
-          apexcharter::apex(
+        output$followers_chart <- renderApexchart({
+          apex(
             data = top_20_artists,
             type = "bar",
-            mapping = apexcharter::aes(x = name, y = followers.total)
-          ) %>%
-            apexcharter::ax_title(text = "Top 20 Artists by Total Followers in this genre") %>%
-            apexcharter::ax_xaxis(
+            mapping = aes(x = name, y = followers.total)
+          ) |>
+            ax_title(text = "Top 20 Artists by Total Followers in this genre") |>
+            ax_xaxis(
               title = list(text = "Artist"),
               labels = list(style = list(colors = "#E0E0E0")),
               axisBorder = list(show = TRUE, color = "#444444"),
               axisTicks = list(show = TRUE, color = "#444444")
-            ) %>%
-            apexcharter::ax_yaxis(
+            ) |>
+            ax_yaxis(
               title = list(text = "Total Followers"),
               labels = list(
                 style = list(colors = "#E0E0E0"),
-                formatter = htmlwidgets::JS("function(value) { return value.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ','); }") #nolint
+                formatter = JS("function(value) { return value.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ','); }") #nolint
               ),
               axisBorder = list(show = TRUE, color = "#444444"),
               axisTicks = list(show = TRUE, color = "#444444"),
               tickAmount = 10
-            ) %>%
-            apexcharter::ax_chart(
+            ) |>
+            ax_chart(
               background = "#2B2B2B"
-            ) %>%
-            apexcharter::ax_colors("#1F77B4") %>%
-            apexcharter::ax_grid(
+            ) |>
+            ax_colors("#1F77B4") |>
+            ax_grid(
               borderColor = "#444444"
-            ) %>%
-            apexcharter::ax_tooltip(
+            ) |>
+            ax_tooltip(
               theme = "dark"
             )
         })

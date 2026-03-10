@@ -34,5 +34,5 @@ get_similar_artists_formatted <- function(artist, limit = 5) {
     )
     return(similar_artists)
   }
-  return(NULL)
+  NULL
 }
