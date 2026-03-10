@@ -26,13 +26,17 @@ get_similar_artists_formatted <- function(artist, limit = 5) {
     "artist.getSimilar",
     params = params
   )
-  # Format the response into a clean data frame
+  parse_similar_artists(result)
+}
+
+#' @export
+parse_similar_artists <- function(result) {
   if (!is.null(result$similarartists$artist)) {
-    similar_artists <- data.frame(
+    data.frame(
       name = vapply(result$similarartists$artist, function(x) x$name, character(1)),
       match = as.numeric(vapply(result$similarartists$artist, function(x) x$match, character(1)))
     )
-    return(similar_artists)
+  } else {
+    NULL
   }
-  NULL
 }
