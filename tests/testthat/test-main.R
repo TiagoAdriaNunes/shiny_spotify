@@ -7,7 +7,7 @@ box::use(
   app/main[server],
 )
 
-test_that("main server works", {
+test_that("main server initializes and renders app title", {
   testServer(server, {
     session$setInputs(id = "test")
     expect_true(grepl(x = output$message, pattern = "Spotify Search App!"))
