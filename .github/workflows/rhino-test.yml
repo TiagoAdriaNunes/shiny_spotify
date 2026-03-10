@@ -20,7 +20,9 @@ jobs:
       - name: Setup system dependencies
         run: |
           packages=(
+            libcurl4-openssl-dev
             libwebp-dev
+            pandoc
           )
           sudo apt-get update
           sudo apt-get install --yes "${packages[@]}"
