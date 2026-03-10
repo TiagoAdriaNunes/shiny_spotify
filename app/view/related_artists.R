@@ -56,6 +56,7 @@ similar_artists_for_multiple <- function(artist_names) {
 }
 
 # Helper function to render related artists network
+#' @export
 render_similar_artists_network <- function(ns, main_artist_name, similar_artists) {
   if (is.null(similar_artists)) {
     return(tags$p("No similar artists found."))

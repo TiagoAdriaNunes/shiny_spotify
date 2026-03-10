@@ -14,6 +14,7 @@ box::use(
 # Memoize the Spotify API function for caching
 get_artist_memo <- memoise(get_artist)
 
+#' @export
 generate_svg_circle <- function(popularity_value) {
   popularity_value <- as.numeric(popularity_value)
   # Calculate the radius of the circle
