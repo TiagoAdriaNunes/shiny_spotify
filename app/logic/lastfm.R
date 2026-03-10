@@ -15,11 +15,11 @@ lastfm_api <- function(method, params = list()) {
     params$api_sig <- create_signature(params, Sys.getenv("LASTFM_API_SECRET"))
   }
   # Make API request
-  response <- httr::GET(
+  response <- GET(
     base_url,
     query = params
   )
   # Parse response and convert to list
-  content <- jsonlite::fromJSON(rawToChar(response$content), simplifyDataFrame = FALSE)
-  return(content)
+  content <- fromJSON(rawToChar(response$content), simplifyDataFrame = FALSE)
+  content
 }

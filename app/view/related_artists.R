@@ -145,11 +145,11 @@ render_similar_artists_network <- function(ns, main_artist_name, similar_artists
       }
     }
   }
-  visNetwork(nodes, edges) %>%
+  visNetwork(nodes, edges) |>
     visNodes(shape = "dot",
              size = 10,
-             font = list(color = "white")) %>%
-    visEdges(arrows = "to", width = ~ weight * 5) %>%
+             font = list(color = "white")) |>
+    visEdges(arrows = "to", width = ~ weight * 5) |>
     visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE)
 }
 
