@@ -50,21 +50,25 @@ server <- function(id) { #nolint
         # Default limit set to 50 as API only accept this max value
         get_genre_artists_memo(genre = input$genre, limit = 50)
       }, error = function(e) {
-        output$message <- renderText(
-                                            { paste("An error occurred:", e$message) })
+        output$message <- renderText({
+          paste("An error occurred:", e$message)
+        })
         NULL
       })
       if (is.null(artist_results) || nrow(artist_results) == 0) {
-        output$artist_table <- renderReactable(
-                                                          { NULL })
-        output$followers_chart <- renderApexchart(
-                                                               { NULL })
+        output$artist_table <- renderReactable({
+          NULL
+        })
+        output$followers_chart <- renderApexchart({
+          NULL
+        })
         output$message <- renderText({
           paste("No artists found for the genre '", input$genre, "'. Please try a different genre.")
         })
       } else {
-        output$message <- renderText(
-                                            { "" })
+        output$message <- renderText({
+          ""
+        })
         artist_results <- artist_results |>
           mutate(genres = sapply(genres, function(g) paste(g, collapse = ", "))) |>
           arrange(desc(followers.total), desc(popularity))
