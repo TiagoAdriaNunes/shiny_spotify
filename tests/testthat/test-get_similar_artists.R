@@ -1,13 +1,11 @@
 box::use(
-  mockery[stub],
   testthat[expect_equal, expect_null, expect_true, test_that],
 )
 box::use(
-  app/logic/get_similar_artists[get_similar_artists_formatted],
+  app/logic/get_similar_artists[parse_similar_artists],
 )
 
-# Mock Last.fm response with two similar artists
-mock_lastfm_response <- list(
+mock_response <- list(
   similarartists = list(
     artist = list(
       list(name = "Artist B", match = "0.9"),
@@ -16,27 +14,23 @@ mock_lastfm_response <- list(
   )
 )
 
-test_that("get_similar_artists_formatted returns a data frame with correct columns", {
-  stub(get_similar_artists_formatted, "lastfm_api", mock_lastfm_response)
-  result <- get_similar_artists_formatted("Artist A", limit = 2)
+test_that("parse_similar_artists returns a data frame with correct columns", {
+  result <- parse_similar_artists(mock_response)
   expect_true(is.data.frame(result))
   expect_true(all(c("name", "match") %in% names(result)))
 })
 
-test_that("get_similar_artists_formatted returns correct number of rows", {
-  stub(get_similar_artists_formatted, "lastfm_api", mock_lastfm_response)
-  result <- get_similar_artists_formatted("Artist A", limit = 2)
+test_that("parse_similar_artists returns correct number of rows", {
+  result <- parse_similar_artists(mock_response)
   expect_equal(nrow(result), 2)
 })
 
-test_that("get_similar_artists_formatted match column is numeric", {
-  stub(get_similar_artists_formatted, "lastfm_api", mock_lastfm_response)
-  result <- get_similar_artists_formatted("Artist A", limit = 2)
+test_that("parse_similar_artists match column is numeric", {
+  result <- parse_similar_artists(mock_response)
   expect_true(is.numeric(result$match))
 })
 
-test_that("get_similar_artists_formatted returns NULL when no artists found", {
-  stub(get_similar_artists_formatted, "lastfm_api", list(similarartists = list()))
-  result <- get_similar_artists_formatted("Unknown Artist")
+test_that("parse_similar_artists returns NULL when no artists found", {
+  result <- parse_similar_artists(list(similarartists = list()))
   expect_null(result)
 })
