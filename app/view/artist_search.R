@@ -3,7 +3,9 @@ box::use(
   bslib[page_fillable],
   memoise[memoise],
   shiny[...], #nolint
-  spotifyr[search_spotify],
+)
+box::use(
+  app/logic/spotify_api[search_spotify],
 )
 
 # Memoize the Spotify API functions to enable caching
@@ -33,8 +35,18 @@ server <- function(id, selected_artist_id, selected_artist_name) {
     observeEvent(input$search, {
       req(input$artist_name)  # Ensure artist_name input is not empty
       # Use the memoized version of search_spotify to cache the results
-      artist_result <- search_spotify_memo(input$artist_name, type = "artist")
-      if (nrow(artist_result) > 0) {
+      search_failed <- FALSE
+      artist_result <- tryCatch(
+        search_spotify_memo(input$artist_name, type = "artist"),
+        error = function(e) {
+          warning("Spotify search failed: ", conditionMessage(e), call. = FALSE)
+          search_failed <<- TRUE
+          NULL
+        }
+      )
+      if (search_failed) {
+        output$artist_info <- renderText("Artist search unavailable. Please try again later.")
+      } else if (nrow(artist_result) > 0) {
         artist_id <- artist_result$id[1]  # Get the first result's artist ID
         artist_name <- artist_result$name[1]  # Get the artist name
         # Store the artist ID in the reactive value

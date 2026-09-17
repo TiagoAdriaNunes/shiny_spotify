@@ -24,6 +24,13 @@ ui <- function(id) {
       navbar_bg = "#1DB954",
       navbar_light_color = "white"
     ),
+    tags$div(
+      "Spotify API was changed, the app is being adjusted.",
+      style = paste(
+        "background-color: #b91d1d; color: white; padding: 8px 16px;",
+        "text-align: center; font-weight: bold;"
+      )
+    ),
     navbarPage(
       title = "Spotify Search App",
       inverse = TRUE,
@@ -59,8 +66,8 @@ server <- function(id) {
     artist_search$server("artist_search", selected_artist_id, selected_artist_name)
     # Call artist profile server and pass the reactive selected_artist_id
     artist_profile$server("artist_profile", selected_artist_id)
-    # Call artist top tracks server and pass the reactive selected_artist_id
-    artist_top_tracks$server("artist_top_tracks", selected_artist_id)
+    # Call artist top tracks server and pass the reactive selected_artist_name
+    artist_top_tracks$server("artist_top_tracks", selected_artist_name)
     # Call related artists server and pass only the artist name
     related_artists$server("related_artists", selected_artist_name)
     # Call genre filter server logic

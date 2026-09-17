@@ -7,7 +7,6 @@ box::use(
 
 box::use(
   app / logic / get_similar_artists[get_similar_artists_formatted],
-  app /logic / lastfm[lastfm_api],
 )
 
 # Memoize the formatted function for caching
@@ -19,28 +18,12 @@ ui <- function(id) {
   visNetworkOutput(ns("related_artists_network"))
 }
 
-# Helper function to fetch similar artists from Last.fm
+# Helper function to fetch similar artists from Last.fm (cached via memoise)
 fetch_similar_artists <- function(artist_name) {
-  tryCatch({
-    result <- lastfm_api("artist.getSimilar", list(artist = artist_name, limit = 5))
-    if (!is.null(result$similarartists$artist)) {
-      # Extract only the relevant information
-      similar_artists <- data.frame(
-        name = vapply(result$similarartists$artist, function(x) {
-          x$name
-        }, character(1)),
-        match = as.numeric(
-          vapply(result$similarartists$artist, function(x) {
-            x$match
-          }, character(1))
-        )
-      )
-      return(similar_artists)
-    }
-    return(NULL)
-  }, error = function(e) {
-    NULL
-  })
+  tryCatch(
+    get_similar_artists_memo(artist_name, limit = 5),
+    error = function(e) NULL
+  )
 }
 
 # Helper function to fetch similar artists for multiple artists

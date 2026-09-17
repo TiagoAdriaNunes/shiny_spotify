@@ -1,6 +1,9 @@
 box::use(
   app/logic/lastfm[lastfm_api],
 )
+box::use(
+  purrr[map_chr],
+)
 
 #' Get similar artists from Last.fm API and format the response
 #' @param artist The name of the artist to find similar artists for
@@ -33,8 +36,8 @@ get_similar_artists_formatted <- function(artist, limit = 5) {
 parse_similar_artists <- function(result) {
   if (!is.null(result$similarartists$artist)) {
     data.frame(
-      name = vapply(result$similarartists$artist, function(x) x$name, character(1)),
-      match = as.numeric(vapply(result$similarartists$artist, function(x) x$match, character(1)))
+      name = map_chr(result$similarartists$artist, "name"),
+      match = as.numeric(map_chr(result$similarartists$artist, "match"))
     )
   } else {
     NULL

@@ -8,7 +8,9 @@ box::use(
   memoise[memoise],
   scales[comma],
   shiny[...], # nolint
-  spotifyr[get_artist],
+)
+box::use(
+  app/logic/spotify_api[get_artist],
 )
 
 # Memoize the Spotify API function for caching

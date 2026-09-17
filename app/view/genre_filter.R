@@ -6,10 +6,12 @@ box::use(
   memoise[memoise], # nolint
   reactable[reactableOutput, renderReactable, colDef, colFormat, reactable, reactableTheme], # nolint
   shiny[...], # nolint
-  spotifyr[get_genre_artists] # nolint
 )
 
-box::use(app/config/genres[genres_list]) # nolint
+box::use(
+  app/config/genres[genres_list], # nolint
+  app/logic/spotify_api[get_genre_artists],
+)
 
 # Memoized function for caching API calls
 get_genre_artists_memo <- memoise(get_genre_artists)
@@ -47,8 +49,9 @@ server <- function(id) { #nolint
     observeEvent(input$search, {
       req(input$genre)
       artist_results <- tryCatch({
-        # Default limit set to 50 as API only accept this max value
-        get_genre_artists_memo(genre = input$genre, limit = 50)
+        # Spotify's /v1/search only accepts limit 0-10 (see
+        # app/logic/spotify_api.R)
+        get_genre_artists_memo(genre = input$genre, limit = 10)
       }, error = function(e) {
         output$message <- renderText({
           paste("An error occurred:", e$message)
@@ -69,6 +72,18 @@ server <- function(id) { #nolint
         output$message <- renderText({
           ""
         })
+        # Spotify omits genres/followers/popularity for some access tiers
+        # (see app/logic/spotify_api.R); fill in safe defaults so the
+        # pipeline below doesn't error when a field is missing entirely.
+        if (is.null(artist_results$genres)) {
+          artist_results$genres <- vector("list", nrow(artist_results))
+        }
+        if (is.null(artist_results$followers.total)) {
+          artist_results$followers.total <- NA_real_
+        }
+        if (is.null(artist_results$popularity)) {
+          artist_results$popularity <- NA_real_
+        }
         artist_results <- artist_results |>
           mutate(genres = sapply(genres, function(g) paste(g, collapse = ", "))) |>
           arrange(desc(followers.total), desc(popularity))
