@@ -182,3 +182,38 @@ test_that("get_artist_top_tracks searches tracks filtered by artist and market",
   expect_data_frame(result, nrows = 1)
   expect_error(get_artist_top_tracks("Artist A", "artist-id", market = "brazil"), "market")
 })
+
+test_that("Romy's tracks exclude fuzzy matches and artists with the same name", {
+  queries <- character(0)
+  local_spotify_api(function(req) {
+    query <- url_parse(req$url)$query$q
+    queries <<- c(queries, query)
+    wrong <- list(id = "wrong", name = "Dardos", artists = list(list(id = "romeo-id", name = "Romeo Santos")))
+    if (query == 'artist:"Romy"') {
+      return(response_json(body = list(tracks = list(items = list(wrong)))))
+    }
+    response_json(body = list(tracks = list(items = list(
+      wrong,
+      list(id = "strong", name = "Strong", artists = list(list(id = "guest-id", name = "Fred again.."), list(id = "romy-id", name = "Romy"))),
+      list(id = "other-romy", name = "Unrelated", artists = list(list(id = "other-id", name = "Romy"))),
+      list(id = "enjoy", name = "Enjoy Your Life", artists = list(list(id = "romy-id", name = "Romy"))),
+      list(id = "unverified", name = "Missing artist metadata")
+    ))))
+  })
+  result <- get_artist_top_tracks("Romy", "romy-id")
+  expect_equal(queries, c('artist:"Romy"', "Romy"))
+  expect_equal(result$id, c("strong", "enjoy"))
+})
+
+test_that("track fallback keeps verified matches and removes duplicate track IDs", {
+  track <- list(id = "verified", name = "Song", artists = list(list(id = "artist-id", name = "Artist")))
+  local_spotify_api(function(req) response_json(body = list(tracks = list(items = list(track)))))
+  expect_equal(get_artist_top_tracks("Artist", "artist-id")$id, "verified")
+})
+
+test_that("unverified tracks are not shown when neither search matches the artist", {
+  local_spotify_api(function(req) {
+    response_json(body = list(tracks = list(items = list(list(id = "unknown", name = "Song")))))
+  })
+  expect_equal(nrow(get_artist_top_tracks("Romy", "romy-id")), 0)
+})

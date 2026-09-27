@@ -44,6 +44,7 @@ box::use(
     resp_status,
   ],
   jsonlite[fromJSON],
+  purrr[map_lgl],
   stringr[str_glue],
 )
 
@@ -121,6 +122,7 @@ get_artist_albums <- function(id, include_groups = "album", limit = 10) {
   )
 }
 
+#' Search for tracks and verify that they credit the selected Spotify artist ID.
 #' @export
 get_artist_top_tracks <- function(artist_name, artist_id, market = "US", limit = 10) {
   assert_string(artist_name, min.chars = 1)
@@ -138,7 +140,9 @@ get_artist_top_tracks <- function(artist_name, artist_id, market = "US", limit =
     if (!"artists" %in% names(tracks)) {
       return(tracks[0, ])
     }
-    matches <- vapply(tracks$artists, function(artists) artist_id %in% artists$id, logical(1))
+    matches <- map_lgl(tracks$artists, function(artists) {
+      is.data.frame(artists) && artist_id %in% artists$id
+    })
     tracks[matches, ]
   }
   tracks <- search_tracks(str_glue('artist:"{artist_name}"'))
