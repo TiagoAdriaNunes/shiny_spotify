@@ -55,7 +55,8 @@ search_genre <- function(genre, lastfm = lastfm_mock()) {
     result <<- list(
       message = output$message,
       table = output$artist_table,
-      chart = output$listeners_chart
+      chart = output$listeners_chart,
+      plays_chart = output$plays_chart
     )
   })
   result
@@ -69,7 +70,59 @@ test_that("renders the table and chart for the genre's top artists", {
   expect_match(result$table, "https://www.last.fm/music/Artist+A", fixed = TRUE)
   # Play counts past 2^31 survive as numbers
   expect_match(result$table, "3e+09|3000000000")
-  expect_match(result$chart, "tagged 'rock' by Last.fm listeners", fixed = TRUE)
+  expect_match(result$chart, "tagged 'rock': Last.fm listeners", fixed = TRUE)
+  expect_match(result$plays_chart, "tagged 'rock': Last.fm total plays", fixed = TRUE)
+  series <- fromJSON(result$chart, simplifyVector = FALSE)$x$ax_opts$series
+  plays <- fromJSON(result$plays_chart, simplifyVector = FALSE)$x$ax_opts$series
+  expect_equal(length(series), 1)
+  expect_equal(length(plays), 1)
+  expect_equal(series[[1]]$name, "Listeners")
+  expect_equal(plays[[1]]$name, "Total plays")
+  expect_equal(series[[1]]$data[[1]]$y, 1500)
+  expect_equal(plays[[1]]$data[[1]]$y, 3000000000)
+  expect_equal(series[[1]]$data[[1]]$x, plays[[1]]$data[[1]]$x)
+})
+
+test_that("successive searches replace the chart data and title", {
+  for (memo in c("get_top_genres_memo", "get_genre_artists_memo", "get_artist_stats_memo")) {
+    forget_memo(genre_filter, memo)
+  }
+  lastfm <- function(req) {
+    query <- url_parse(req$url)$query
+    if (query$method == "tag.getTopArtists") {
+      return(response_json(body = list(topartists = list(artist = list(
+        list(name = paste(query$tag, "artist"), url = "https://www.last.fm/music/test", `@attr` = list(rank = "1"))
+      )))))
+    }
+    if (query$method == "artist.getInfo") {
+      listeners <- if (query$artist == "rock artist") "100" else "200"
+      return(response_json(body = list(artist = list(stats = list(listeners = listeners, playcount = "1000")))))
+    }
+    lastfm_mock()(req)
+  }
+  local_spotify_api(function(req) stop("unexpected Spotify request"), lastfm = lastfm, env = environment())
+  testServer(genre_filter$server, {
+    session$setInputs(genre = "rock", search = 1)
+    rock <- fromJSON(output$listeners_chart, simplifyVector = FALSE)$x
+    rock_plays <- fromJSON(output$plays_chart, simplifyVector = FALSE)$x
+    expect_equal(rock$ax_opts$series[[1]]$data[[1]]$x, "rock artist")
+    expect_equal(rock$ax_opts$series[[1]]$data[[1]]$y, 100)
+    session$setInputs(genre = "pop")
+    expect_equal(fromJSON(output$listeners_chart, simplifyVector = FALSE)$x, rock)
+    expect_equal(fromJSON(output$plays_chart, simplifyVector = FALSE)$x, rock_plays)
+    session$setInputs(search = 2)
+    pop <- fromJSON(output$listeners_chart, simplifyVector = FALSE)$x
+    expect_equal(pop$ax_opts$series[[1]]$data[[1]]$x, "pop artist")
+    expect_equal(pop$ax_opts$series[[1]]$data[[1]]$y, 200)
+    pop_plays <- fromJSON(output$plays_chart, simplifyVector = FALSE)$x
+    expect_equal(pop_plays$ax_opts$series[[1]]$data[[1]]$x, "pop artist")
+    expect_equal(pop_plays$ax_opts$series[[1]]$data[[1]]$y, 1000)
+    expect_match(pop_plays$ax_opts$title$text, "tagged 'pop'", fixed = TRUE)
+    expect_false(pop_plays$auto_update)
+    expect_match(pop$ax_opts$title$text, "tagged 'pop'", fixed = TRUE)
+    # Recreating the browser chart avoids stale bars from automatic updates.
+    expect_false(pop$auto_update)
+  })
 })
 
 test_that("still renders when an artist's stats can't be fetched", {
@@ -82,8 +135,9 @@ test_that("still renders when an artist's stats can't be fetched", {
   result <- search_genre("jazz", lastfm = failing_stats)
   expect_equal(result$message, "")
   expect_match(result$table, "Artist A", fixed = TRUE)
-  # With no listener counts at all there's nothing to chart
+  # With neither listener nor play counts there's nothing to chart
   expect_null(fromJSON(result$chart)$x)
+  expect_null(fromJSON(result$plays_chart)$x)
 })
 
 test_that("tells the user when no artists match the genre", {
@@ -92,6 +146,7 @@ test_that("tells the user when no artists match the genre", {
   # A widget rendered from NULL serialises with no data (`x`)
   expect_null(fromJSON(result$table)$x)
   expect_null(fromJSON(result$chart)$x)
+  expect_null(fromJSON(result$plays_chart)$x)
 })
 
 test_that("shows an unavailable message when Last.fm returns an error", {
@@ -206,9 +261,10 @@ test_that("artist names aren't buttons when the app doesn't provide open_artist"
 test_that("clicking an artist's name or chart bar asks the app to open their profile", {
   result <- click_genre_artists(list(
     list(artist_clicked = "Artist A"),
-    list(chart_click = "Artist B")
+    list(chart_click = "Artist B"),
+    list(plays_chart_click = "Artist A")
   ))
-  expect_equal(result$opened, c("Artist A", "Artist B"))
+  expect_equal(result$opened, c("Artist A", "Artist B", "Artist A"))
 })
 
 test_that("a chart bar being deselected doesn't open anything", {

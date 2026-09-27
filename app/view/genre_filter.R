@@ -50,8 +50,7 @@ box::use(
     selectizeInput,
     sidebarLayout,
     sidebarPanel,
-    textOutput,
-    titlePanel
+    textOutput
   ],
   stringr[str_glue],
 )
@@ -122,7 +121,6 @@ genre_choices <- function() {
 ui <- function(id) {
   ns <- NS(id)
   fluidPage(
-    titlePanel("Find Artists by Genre"),
     sidebarLayout(
       sidebarPanel(
         # Choices are rendered into the page rather than sent with
@@ -135,7 +133,9 @@ ui <- function(id) {
           choices = genre_choices(),
           options = list(
             create = TRUE,
-            placeholder = "Type or select a genre"
+            placeholder = "Type or select a genre",
+            onDropdownOpen = I("App.genreDropdownOpen"),
+            onDropdownClose = I("App.genreDropdownClose")
           )
         ),
         # No busy icon: the table and chart show the loading spinner, so the
@@ -148,8 +148,15 @@ ui <- function(id) {
         # auto, so .genre-table reserves its space (see main.scss) to keep
         # the page from jumping
         tags$div(
-          class = "genre-chart",
-          apexchartOutput(ns("listeners_chart"))
+          class = "genre-charts",
+          tags$div(
+            class = "genre-chart",
+            apexchartOutput(ns("listeners_chart"))
+          ),
+          tags$div(
+            class = "genre-chart",
+            apexchartOutput(ns("plays_chart"))
+          )
         ),
         tags$div(
           class = "genre-table",
@@ -209,6 +216,7 @@ server <- function(id, open_artist = NULL) {
     # The chart sends the clicked bar's category (the artist name), and NULL
     # when the bar is clicked again to deselect it, which observeEvent ignores
     observeEvent(input$chart_click, open_clicked_artist(unlist(input$chart_click)[1]))
+    observeEvent(input$plays_chart_click, open_clicked_artist(unlist(input$plays_chart_click)[1]))
 
     output$message <- renderText({
       if (test_string(open_error(), min.chars = 1)) {
@@ -288,31 +296,40 @@ server <- function(id, open_artist = NULL) {
       )
     })
 
-    output$listeners_chart <- renderApexchart({
+    artist_chart <- function(metric, label, color, click_input) {
       results <- search_results()
       # Nothing to plot without results, or if every artist's stats lookup failed
-      if (results$status != "ok" || !test_numeric(results$artists$listeners, all.missing = FALSE)) {
+      if (results$status != "ok" || !test_numeric(results$artists[[metric]], all.missing = FALSE)) {
         return(NULL)
       }
+      chart_data <- results$artists
+      chart_data$count <- chart_data[[metric]]
       chart <- apex(
-        data = results$artists |> arrange(desc(listeners)),
+        data = chart_data |> arrange(desc(count)),
         type = "bar",
-        mapping = aes(x = name, y = listeners)
+        mapping = aes(x = name, y = count),
+        serie_name = label,
+        # Rebuild when the searched genre changes. The automatic update path
+        # can replace the series internally while leaving the old bars visible.
+        auto_update = FALSE
       ) |>
         # The searched genre, not input$genre, so changing the dropdown
         # without searching doesn't relabel the current chart
-        ax_title(text = paste0("Top artists tagged '", results$genre, "' by Last.fm listeners")) |>
+        ax_title(text = paste0("Top artists tagged '", results$genre, "': Last.fm ", tolower(label))) |>
         ax_xaxis(
-          title = list(text = "Artist"),
-          labels = list(style = list(colors = "#E0E0E0")),
+          title = list(text = label),
+          labels = list(
+            style = list(colors = "#E0E0E0"),
+            # Horizontal bars put numeric ticks on the x axis.
+            formatter = JS("function(value) { return Number(value).toLocaleString('en-US', { maximumFractionDigits: 0 }); }")
+          ),
           axisBorder = list(show = TRUE, color = "#444444"),
           axisTicks = list(show = TRUE, color = "#444444")
         ) |>
         ax_yaxis(
-          title = list(text = "Listeners"),
+          title = list(text = "Artist"),
           labels = list(
-            style = list(colors = "#E0E0E0"),
-            formatter = JS("function(value) { return value.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ','); }")
+            style = list(colors = "#E0E0E0")
           ),
           axisBorder = list(show = TRUE, color = "#444444"),
           axisTicks = list(show = TRUE, color = "#444444"),
@@ -321,19 +338,29 @@ server <- function(id, open_artist = NULL) {
         ax_chart(
           background = "#2B2B2B"
         ) |>
-        ax_colors("#1F77B4") |>
+        ax_colors(color) |>
         ax_grid(
           borderColor = "#444444"
         ) |>
         ax_tooltip(
-          theme = "dark"
+          theme = "dark",
+          shared = TRUE,
+          intersect = FALSE,
+          y = list(formatter = JS("function(value) { return value == null ? 'Unavailable' : value.toLocaleString('en-US'); }"))
         )
       if (test_function(open_artist)) {
         # Clicking a bar opens that artist's profile (see input$chart_click).
         # No highlight effect: the app switches to the profile straight away.
-        chart <- set_input_click(chart, "chart_click", effect_type = "none")
+        chart <- set_input_click(chart, click_input, effect_type = "none")
       }
       chart
+    }
+
+    output$listeners_chart <- renderApexchart({
+      artist_chart("listeners", "Listeners", "#1F77B4", "chart_click")
+    })
+    output$plays_chart <- renderApexchart({
+      artist_chart("playcount", "Total plays", "#F2A541", "plays_chart_click")
     })
   })
 }

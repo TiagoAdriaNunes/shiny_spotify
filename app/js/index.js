@@ -32,6 +32,28 @@ document.addEventListener('click', (event) => {
   input.focus();
 });
 
+// The genre dropdown (a single-choice selectize). Once a genre is chosen,
+// selectize ignores typing until that choice is removed, so typing a second
+// genre did nothing: the first stayed selected and was searched again.
+// Opening the dropdown now empties it (silently, so the server keeps the
+// current genre) and focuses it, so typing filters straight away; closing it
+// without a new choice puts the previous genre back. Used as the dropdown's
+// onDropdownOpen / onDropdownClose options in genre_filter.R, where `this` is
+// the selectize instance.
+export function genreDropdownOpen() {
+  this.previousGenre = this.getValue();
+  if (this.previousGenre) {
+    this.clear(true);
+    this.focus();
+  }
+}
+
+export function genreDropdownClose() {
+  if (!this.getValue() && this.previousGenre) {
+    this.setValue(this.previousGenre, true);
+  }
+}
+
 // Artist names in the genre results table open that artist's profile. Each
 // name is a button carrying the Shiny input to notify (data-input-id) and the
 // artist's name (data-artist); see genre_artist_cell() in genre_filter.R.

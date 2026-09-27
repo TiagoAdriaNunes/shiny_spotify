@@ -59,6 +59,36 @@ $genre-table-min-height: 475px;
   }
 }
 
+.genre-charts {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+
+  @media (min-width: 992px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.genre-chart {
+  min-width: 0;
+
+  .apexcharts-menu {
+    background-color: #1f1f1f;
+    border-color: #444;
+    color: #e0e0e0;
+
+    .apexcharts-menu-item {
+      color: #e0e0e0;
+
+      &:hover,
+      &:focus-visible {
+        background-color: #3a3a3a;
+        color: #fff;
+      }
+    }
+  }
+}
+
 // Clicking a bar opens that artist's profile
 .genre-chart .apexcharts-bar-area {
   cursor: pointer;
