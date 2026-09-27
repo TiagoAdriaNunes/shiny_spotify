@@ -29,7 +29,11 @@ box::use(
     assert_string,
     test_null
   ],
-  dplyr[as_tibble],
+  dplyr[
+    as_tibble,
+    bind_rows,
+    distinct
+  ],
   httr2[
     request,
     req_auth_bearer_token,
@@ -118,13 +122,37 @@ get_artist_albums <- function(id, include_groups = "album", limit = 10) {
 }
 
 #' @export
-get_artist_top_tracks <- function(artist_name, market = "US", limit = 10) {
+get_artist_top_tracks <- function(artist_name, artist_id, market = "US", limit = 10) {
   assert_string(artist_name, min.chars = 1)
+  assert_string(artist_id, min.chars = 1)
   assert_string(market, pattern = "^[A-Z]{2}$")
   assert_int(limit, lower = 1)
-  res <- spotify_get(
-    "https://api.spotify.com/v1/search",
-    query = list(q = str_glue('artist:"{artist_name}"'), type = "track", market = market, limit = limit)
-  )
-  as_tibble(res$tracks$items)
+  search_tracks <- function(query) {
+    res <- spotify_get(
+      "https://api.spotify.com/v1/search",
+      query = list(q = query, type = "track", market = market, limit = limit)
+    )
+    tracks <- as_tibble(res$tracks$items)
+    # Spotify's artist-name filter is fuzzy (e.g. Romy matches Romeo Santos).
+    # Only keep tracks crediting the selected ID, including collaborations.
+    if (!"artists" %in% names(tracks)) {
+      return(tracks[0, ])
+    }
+    matches <- vapply(tracks$artists, function(artists) artist_id %in% artists$id, logical(1))
+    tracks[matches, ]
+  }
+  tracks <- search_tracks(str_glue('artist:"{artist_name}"'))
+  # The fielded search can miss the artist entirely; a broader search finds
+  # candidates, still subject to the same exact-ID check.
+  if (nrow(tracks) < min(5, limit)) {
+    fallback <- tryCatch(search_tracks(artist_name), error = function(e) {
+      if (nrow(tracks) == 0) {
+        stop(e)
+      }
+      tracks[0, ]
+    })
+    tracks <- bind_rows(tracks, fallback)
+    if ("id" %in% names(tracks)) tracks <- distinct(tracks, id, .keep_all = TRUE)
+  }
+  tracks
 }

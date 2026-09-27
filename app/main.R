@@ -104,7 +104,7 @@ server <- function(id) {
     # returns open_artist(name), which runs the same search from elsewhere.
     open_artist <- artist_search$server("artist_search", selected_artist_id, selected_artist_name)
     # Call artist top tracks server and pass the reactive selected_artist_name
-    artist_top_tracks$server("artist_top_tracks", selected_artist_name)
+    artist_top_tracks$server("artist_top_tracks", selected_artist_name, selected_artist_id)
     # Opens an artist's profile from anywhere in the app (the genre results,
     # the related artists network): searches for them and, when found, shows
     # the profile tab. Returns whether they were found.

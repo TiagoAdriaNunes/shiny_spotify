@@ -16,7 +16,7 @@ render_top_tracks <- function(name, api = function(req) stop("unexpected request
   forget_memo(artist_top_tracks, "get_artist_top_tracks_memoized")
   local_spotify_api(api, env = parent.frame())
   html <- NULL
-  testServer(artist_top_tracks$server, args = list(artist_name = reactiveVal(name)), {
+  testServer(artist_top_tracks$server, args = list(artist_name = reactiveVal(name), artist_id = reactiveVal("artist-id")), {
     session$flushReact()
     html <<- output$top_tracks_list$html
   })
@@ -26,9 +26,9 @@ render_top_tracks <- function(name, api = function(req) stop("unexpected request
 # A search response with `n` tracks, or with the given track names
 tracks_response <- function(n, names = as.character(str_glue("Song {seq_len(n)}")), details = FALSE) {
   items <- imap(names, function(track_name, i) {
-    track <- list(id = as.character(str_glue("track{i}")), name = track_name)
+    track <- list(id = as.character(str_glue("track{i}")), name = track_name, artists = list(list(id = "artist-id")))
     if (details) {
-      track$artists <- list(list(name = "Artist A"), list(name = "Guest"))
+      track$artists <- list(list(id = "artist-id", name = "Artist A"), list(id = "guest-id", name = "Guest"))
       track$album <- list(images = list(
         list(url = as.character(str_glue("large{i}.jpg")), height = 640, width = 640),
         list(url = as.character(str_glue("small{i}.jpg")), height = 64, width = 64)
@@ -74,7 +74,7 @@ test_that("the placeholder shows the track's title, artists and small cover whil
   expect_match(html, 'class="track-embed-placeholder" aria-hidden="true"', fixed = TRUE)
 })
 
-test_that("the placeholder still renders when Spotify leaves out artists and covers", {
+test_that("the placeholder still renders when Spotify leaves out artist names and covers", {
   html <- render_top_tracks("Artist G", function(req) tracks_response(1))
   expect_match(html, '<div class="track-embed-title">Song 1</div>', fixed = TRUE)
   expect_no_match(html, "<img", fixed = TRUE)

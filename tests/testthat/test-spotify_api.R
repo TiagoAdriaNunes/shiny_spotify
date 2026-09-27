@@ -171,14 +171,14 @@ test_that("get_artist_top_tracks searches tracks filtered by artist and market",
   requested <- NULL
   local_spotify_api(function(req) {
     requested <<- url_parse(req$url)
-    response_json(body = list(tracks = list(items = list(list(id = "t1", name = "Song")))))
+    response_json(body = list(tracks = list(items = list(list(id = "t1", name = "Song", artists = list(list(id = "artist-id")))))))
   })
-  result <- get_artist_top_tracks("Artist A", market = "BR", limit = 3)
+  result <- get_artist_top_tracks("Artist A", "artist-id", market = "BR", limit = 1)
   expect_equal(requested$path, "/v1/search")
   expect_equal(
     requested$query,
-    list(q = 'artist:"Artist A"', type = "track", market = "BR", limit = "3")
+    list(q = 'artist:"Artist A"', type = "track", market = "BR", limit = "1")
   )
   expect_data_frame(result, nrows = 1)
-  expect_error(get_artist_top_tracks("Artist A", market = "brazil"), "market")
+  expect_error(get_artist_top_tracks("Artist A", "artist-id", market = "brazil"), "market")
 })

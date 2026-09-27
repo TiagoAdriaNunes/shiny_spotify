@@ -26,7 +26,9 @@ spotify_mock <- function(req) {
     return(response_json(body = list(total = 1, items = list())))
   }
   if (path == "/v1/search") {
-    return(response_json(body = list(tracks = list(items = list(list(id = "track1", name = "Song"))))))
+    return(response_json(body = list(tracks = list(items = list(list(
+      id = "track1", name = "Song", artists = list(list(id = "4tZwfgrHOc3mvqYlEYSvVi", name = "Daft Punk"))
+    ))))))
   }
   response_json(body = list(id = basename(path), name = "Daft Punk"))
 }

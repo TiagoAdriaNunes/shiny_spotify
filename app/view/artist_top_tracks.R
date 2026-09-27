@@ -93,20 +93,21 @@ track_placeholder <- function(name, artists, cover) {
 
 # Server function for the artist's top tracks
 #' @export
-server <- function(id, artist_name) {
+server <- function(id, artist_name, artist_id) {
   moduleServer(id, function(input, output, session) {
     # Fetched inside the render function so the card is marked as
     # recalculating, and shows a spinner, while the request runs
     output$top_tracks_list <- renderUI({
       name <- artist_name()
-      if (!test_string(name, min.chars = 1)) {
+      selected_id <- artist_id()
+      if (!test_string(name, min.chars = 1) || !test_string(selected_id, min.chars = 1)) {
         # No artist selected yet
         return(tags$p("Please select an artist to see their top tracks."))
       }
       # Fetch top tracks for the artist via search (get_artist_top_tracks's
       # underlying endpoint is deprecated -- see app/logic/spotify_api.R)
       top_tracks <- tryCatch(
-        get_artist_top_tracks_memoized(name),
+        get_artist_top_tracks_memoized(name, artist_id = selected_id),
         error = function(e) {
           warning("Spotify top tracks fetch failed: ", conditionMessage(e), call. = FALSE)
           NULL
