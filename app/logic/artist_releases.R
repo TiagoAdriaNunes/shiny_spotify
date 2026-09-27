@@ -4,9 +4,13 @@ box::use(
     assert_string,
     test_data_frame
   ],
-  dplyr[coalesce],
+  dplyr[
+    bind_rows,
+    coalesce,
+    slice_max,
+    transmute
+  ],
   purrr[
-    compact,
     keep,
     map,
     map_int,
@@ -43,25 +47,16 @@ summarise_releases <- function(pages) {
   assert_list(pages, names = "unique")
   counts <- map_int(pages, \(page) as.integer(coalesce(page$total, 0L)))
   # Only the artist's own albums and singles count as their latest release
-  own <- pages[intersect(names(pages), c("album", "single"))] |>
-    map(\(page) page$items) |>
+  candidates <- pages[intersect(names(pages), c("album", "single"))] |>
+    map("items") |>
     keep(\(items) test_data_frame(items, min.rows = 1)) |>
-    map(\(items) items[1, , drop = FALSE]) |>
-    compact()
-  list(counts = counts, latest = latest_release(own))
-}
-
-latest_release <- function(candidates) {
-  if (length(candidates) == 0) {
-    return(NULL)
+    bind_rows()
+  latest <- if (nrow(candidates) > 0) {
+    candidates |>
+      # release_date is "YYYY", "YYYY-MM" or "YYYY-MM-DD", which sort as strings
+      slice_max(release_date, n = 1, with_ties = FALSE) |>
+      transmute(name, type = album_type, release_date, url = external_urls.spotify) |>
+      as.list()
   }
-  # release_date is "YYYY", "YYYY-MM" or "YYYY-MM-DD", which sort as strings
-  dates <- vapply(candidates, \(item) item$release_date, character(1))
-  newest <- candidates[[order(dates, decreasing = TRUE)[1]]]
-  list(
-    name = newest$name,
-    type = newest$album_type,
-    release_date = newest$release_date,
-    url = newest$external_urls.spotify
-  )
+  list(counts = counts, latest = latest)
 }

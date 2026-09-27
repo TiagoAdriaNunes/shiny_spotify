@@ -18,7 +18,7 @@ box::use(
     desc,
     mutate,
     select,
-    slice
+    slice_head
   ],
   htmlwidgets[JS],
   memoise[memoise],
@@ -133,7 +133,7 @@ server <- function(id) {
           arrange(desc(followers.total), desc(popularity))
         # Filter to top 20 artists by followers
         top_20_artists <- artist_results |>
-          slice(1:20)
+          slice_head(n = 20)
         output$artist_table <- renderReactable({
           reactable(
             artist_results |> select(name, popularity, followers.total, genres),
