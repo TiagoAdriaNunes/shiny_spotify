@@ -48,3 +48,6 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# Cache written by the R sass package when building app.min.css
+app/static/css/.sass_cache_keys
