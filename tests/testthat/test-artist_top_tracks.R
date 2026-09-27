@@ -37,6 +37,17 @@ test_that("embeds a Spotify player for each track", {
   expect_match(html, "https://open.spotify.com/embed/track/track3", fixed = TRUE)
 })
 
+test_that("each player sits in a placeholder and is marked loaded for the fade-in", {
+  html <- render_top_tracks("Artist E", function(req) tracks_response(2))
+  expect_equal(lengths(regmatches(html, gregexpr('<div class="track-embed">\\s*<iframe', html))), 2)
+  # htmltools escapes the quotes; the browser decodes them when reading it
+  onload <- "onload=\"this.classList.add(&#39;is-loaded&#39;)\""
+  expect_equal(lengths(regmatches(html, gregexpr(onload, html, fixed = TRUE))), 2)
+  # Screen readers need a name for each embedded frame
+  expect_match(html, 'title="Spotify player: Song 1"', fixed = TRUE)
+  expect_match(html, 'title="Spotify player: Song 2"', fixed = TRUE)
+})
+
 test_that("embeds at most five tracks", {
   html <- render_top_tracks("Artist B", function(req) tracks_response(8))
   expect_equal(lengths(regmatches(html, gregexpr("<iframe", html))), 5)

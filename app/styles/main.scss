@@ -60,3 +60,51 @@
     opacity: 0.8;
   }
 }
+
+// Spotify track players. Each one loads on its own, so its wrapper is a
+// placeholder that holds the slot, and the player fades in once loaded
+// (the view adds .is-loaded from the iframe's onload)
+.track-embed {
+  animation: track-embed-pulse 1.5s ease-in-out infinite;
+  background-color: #282828;
+  border-radius: 12px;
+  height: 80px;
+  margin-bottom: 8px;
+  overflow: hidden;
+
+  iframe {
+    border: 0;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+
+    &.is-loaded {
+      opacity: 1;
+    }
+  }
+
+  &:has(iframe.is-loaded) {
+    animation: none;
+  }
+}
+
+@keyframes track-embed-pulse {
+  0%,
+  100% {
+    background-color: #282828;
+  }
+
+  50% {
+    background-color: #333;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track-embed {
+    animation: none;
+
+    iframe {
+      transition: none;
+    }
+  }
+}

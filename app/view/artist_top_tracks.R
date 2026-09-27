@@ -5,7 +5,7 @@ box::use(
   ],
   htmltools[tagList],
   memoise[memoise],
-  purrr[map],
+  purrr[map2],
   shiny[
     htmlOutput,
     moduleServer,
@@ -54,21 +54,29 @@ server <- function(id, artist_name) {
         return(tags$p("No top tracks found."))
       }
       # Display the top 5 tracks with Spotify embed
+      shown <- head(top_tracks, 5)
       tagList(
-        map(head(top_tracks$id, 5), function(track_id) {
-          tags$iframe(
-            style = "border-radius:12px",
-            src = paste0(
-              "https://open.spotify.com/embed/track/",
-              track_id,
-              "?utm_source=generator&theme=0"
-            ),
-            width = "100%",
-            height = "80",
-            frameBorder = "0",
-            allowfullscreen = "",
-            allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture",
-            loading = "lazy"
+        map2(shown$id, shown$name, function(track_id, track_name) {
+          # Each player loads on its own. The wrapper is a placeholder that
+          # holds its slot, and the stylesheet fades the player in once its
+          # onload marks it loaded, instead of it flashing white and popping in
+          tags$div(
+            class = "track-embed",
+            tags$iframe(
+              src = paste0(
+                "https://open.spotify.com/embed/track/",
+                track_id,
+                "?utm_source=generator&theme=0"
+              ),
+              title = paste("Spotify player:", track_name),
+              width = "100%",
+              height = "80",
+              frameBorder = "0",
+              allowfullscreen = "",
+              allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture",
+              loading = "lazy",
+              onload = "this.classList.add('is-loaded')"
+            )
           )
         })
       )
