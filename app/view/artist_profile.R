@@ -164,9 +164,14 @@ server <- function(id, artist_id) {
       if (test_character(urls, min.len = 2)) {
         tags$div(
           style = "text-align: center;",
+          # Spotify's second image is 320px square. Giving the size up front
+          # reserves its space, so the card doesn't jump when it downloads.
           tags$img(
             src = urls[2],
-            style = "max-width: 100%; height: auto; width: auto\\9;"
+            alt = artist_info()$name,
+            width = 320,
+            height = 320,
+            style = "max-width: 100%; height: auto; aspect-ratio: 1 / 1; object-fit: cover;"
           )
         )
       } else {

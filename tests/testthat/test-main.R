@@ -72,3 +72,9 @@ test_that("the search box starts empty even though the default artist is shown",
   html <- as.character(ui("app"))
   expect_match(html, 'id="app-artist_search-artist_name"[^>]*value=""')
 })
+
+test_that("the three result cards reserve their height before loading", {
+  local_spotify_api(spotify_mock, lastfm = lastfm_mock)
+  html <- as.character(ui("app"))
+  expect_equal(lengths(regmatches(html, gregexpr("min-height:640px", html, fixed = TRUE))), 3)
+})

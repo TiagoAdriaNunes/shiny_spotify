@@ -32,6 +32,10 @@ box::use(
 # ID is used directly so startup doesn't need a search request.
 default_artist <- list(id = "4tZwfgrHOc3mvqYlEYSvVi", name = "Daft Punk")
 
+# The height of a loaded result card (measured at 638px), so an empty
+# card doesn't grow and push the page down when its content arrives
+result_card_min_height <- "640px"
+
 # Top-level UI function
 #' @export
 ui <- function(id) {
@@ -63,10 +67,24 @@ ui <- function(id) {
       tabPanel(
         "Artist Profile",
         card(artist_search$ui(ns("artist_search"))),
+        # Each result card starts at roughly its loaded height, so the page
+        # doesn't jump as the cards fill in on the first load
         layout_columns(
-          card(card_header("Artist Profile"), artist_profile$ui(ns("artist_profile"))),
-          card(card_header("Top Tracks"), artist_top_tracks$ui(ns("artist_top_tracks"))),
-          card(card_header("Related Artists powered by Last.fm"), related_artists$ui(ns("related_artists"))),
+          card(
+            card_header("Artist Profile"),
+            artist_profile$ui(ns("artist_profile")),
+            min_height = result_card_min_height
+          ),
+          card(
+            card_header("Top Tracks"),
+            artist_top_tracks$ui(ns("artist_top_tracks")),
+            min_height = result_card_min_height
+          ),
+          card(
+            card_header("Related Artists powered by Last.fm"),
+            related_artists$ui(ns("related_artists")),
+            min_height = result_card_min_height
+          ),
           # The related artists network needs width, so it gets its own row
           # until the screen is wide enough for three columns
           col_widths = breakpoints(

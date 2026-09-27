@@ -143,6 +143,9 @@ describe("artist_profile server", {
     result <- run_profile(spotify)
     expect_equal(result$name, "Artist A")
     expect_match(result$image, 'src="medium.jpg"', fixed = TRUE)
+    # Sized up front so the card doesn't jump when the image downloads
+    expect_match(result$image, 'width="320" height="320"', fixed = TRUE)
+    expect_match(result$image, 'alt="Artist A"', fixed = TRUE)
     expect_match(result$link, 'href="https://open.spotify.com/artist/artist-id"', fixed = TRUE)
     expect_match(result$releases, "Featured on", fixed = TRUE)
     expect_match(result$releases, "Latest release", fixed = TRUE)
