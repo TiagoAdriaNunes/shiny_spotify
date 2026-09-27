@@ -10,12 +10,16 @@ box::use(
     ax_title,
     ax_tooltip,
     ax_xaxis,
-    ax_yaxis
+    ax_yaxis,
+    set_input_click
   ],
+  bsicons[bs_icon],
   bslib[input_task_button],
   checkmate[
     test_data_frame,
-    test_numeric
+    test_function,
+    test_numeric,
+    test_string
   ],
   dplyr[
     arrange,
@@ -39,6 +43,8 @@ box::use(
     mainPanel,
     moduleServer,
     NS,
+    observeEvent,
+    reactiveVal,
     renderText,
     req,
     selectizeInput,
@@ -47,6 +53,7 @@ box::use(
     textOutput,
     titlePanel
   ],
+  stringr[str_glue],
 )
 
 box::use(
@@ -66,6 +73,37 @@ get_artist_stats_memo <- memoise(get_artist_stats)
 
 # Number of top artists shown per genre; each costs one Last.fm call for stats
 genre_artist_limit <- 20
+
+# An artist in the results table: their name opens their profile in the app,
+# and the icon next to it opens their Last.fm page. The name is a button, and
+# app/js/index.js sends its data-artist to the Shiny input in data-input-id
+# when clicked.
+genre_artist_cell <- function(name, lastfm_url, input_id, clickable = TRUE) {
+  lastfm_link <- tags$a(
+    href = lastfm_url,
+    target = "_blank",
+    rel = "noopener",
+    class = "lastfm-link",
+    title = "Open on Last.fm",
+    `aria-label` = as.character(str_glue("Open {name} on Last.fm")),
+    bs_icon("box-arrow-up-right")
+  )
+  if (!clickable) {
+    return(tags$span(class = "genre-artist", name, lastfm_link))
+  }
+  tags$span(
+    class = "genre-artist",
+    tags$button(
+      type = "button",
+      class = "genre-artist-link",
+      title = as.character(str_glue("Open {name}'s profile")),
+      `data-input-id` = input_id,
+      `data-artist` = name,
+      name
+    ),
+    lastfm_link
+  )
+}
 
 # Last.fm's most used tags, offered as genres. If Last.fm is down the list is
 # empty, but typing a genre still works (create = TRUE).
@@ -109,7 +147,10 @@ ui <- function(id) {
         # The chart output is a fixed 400px already; the table's height is
         # auto, so .genre-table reserves its space (see main.scss) to keep
         # the page from jumping
-        apexchartOutput(ns("listeners_chart")),
+        tags$div(
+          class = "genre-chart",
+          apexchartOutput(ns("listeners_chart"))
+        ),
         tags$div(
           class = "genre-table",
           reactableOutput(ns("artist_table"))
@@ -121,7 +162,10 @@ ui <- function(id) {
 }
 
 # Server function
-server <- function(id) {
+#' @param open_artist Function taking an artist name that opens their profile
+#'   and returns TRUE, or FALSE when Spotify has no match (see
+#'   artist_search's server). NULL makes the artists not clickable.
+server <- function(id, open_artist = NULL) {
   moduleServer(id, function(input, output, session) {
     # Runs a search when the button is clicked. The table, chart and message
     # all read this, so while it runs they're marked as recalculating and show
@@ -149,7 +193,27 @@ server <- function(id) {
       list(genre = genre, status = "ok", artists = artists)
     })
 
+    # Clicking an artist, by name in the table or by bar in the chart, opens
+    # their profile. When Spotify has no match the user stays here and sees
+    # why; a new genre search clears that message.
+    open_error <- reactiveVal("")
+    observeEvent(input$search, open_error(""))
+    open_clicked_artist <- function(name) {
+      req(test_function(open_artist), test_string(name, min.chars = 1))
+      open_error("")
+      if (!open_artist(name)) {
+        open_error(as.character(str_glue("'{name}' wasn't found on Spotify.")))
+      }
+    }
+    observeEvent(input$artist_clicked, open_clicked_artist(input$artist_clicked))
+    # The chart sends the clicked bar's category (the artist name), and NULL
+    # when the bar is clicked again to deselect it, which observeEvent ignores
+    observeEvent(input$chart_click, open_clicked_artist(unlist(input$chart_click)[1]))
+
     output$message <- renderText({
+      if (test_string(open_error(), min.chars = 1)) {
+        return(open_error())
+      }
       results <- search_results()
       switch(
         results$status,
@@ -171,8 +235,17 @@ server <- function(id) {
           rank = colDef(name = "Rank", width = 70),
           name = colDef(
             name = "Artist",
+            # The cell is rendered as an HTML string: reactable turns R tags
+            # into its own elements and would show the icon's raw SVG
+            # (bs_icon() returns HTML) as text
+            html = TRUE,
             cell = function(value, index) {
-              tags$a(href = artist_results$url[index], target = "_blank", value)
+              as.character(genre_artist_cell(
+                value,
+                artist_results$url[index],
+                input_id = session$ns("artist_clicked"),
+                clickable = test_function(open_artist)
+              ))
             }
           ),
           listeners = colDef(
@@ -221,7 +294,7 @@ server <- function(id) {
       if (results$status != "ok" || !test_numeric(results$artists$listeners, all.missing = FALSE)) {
         return(NULL)
       }
-      apex(
+      chart <- apex(
         data = results$artists |> arrange(desc(listeners)),
         type = "bar",
         mapping = aes(x = name, y = listeners)
@@ -255,6 +328,12 @@ server <- function(id) {
         ax_tooltip(
           theme = "dark"
         )
+      if (test_function(open_artist)) {
+        # Clicking a bar opens that artist's profile (see input$chart_click).
+        # No highlight effect: the app switches to the profile straight away.
+        chart <- set_input_click(chart, "chart_click", effect_type = "none")
+      }
+      chart
     })
   })
 }

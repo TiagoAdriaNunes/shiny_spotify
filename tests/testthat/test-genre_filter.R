@@ -6,6 +6,7 @@ box::use(
     url_parse
   ],
   jsonlite[fromJSON],
+  purrr[keep],
   shiny[testServer],
   testthat[
     expect_equal,
@@ -139,4 +140,87 @@ test_that("the genre Search button says it's busy without a spinner of its own",
   html <- render_genre_ui(lastfm_mock())
   expect_match(html, '<span slot="busy">Searching...</span>', fixed = TRUE)
   expect_no_match(html, "fa-spin", fixed = TRUE)
+})
+
+# Searches "rock", then applies `clicks` (a list of input values, e.g.
+# list(artist_clicked = "Artist A")) one after another. `open_artist` stands in
+# for the app's function; returns the artists it was asked to open and the
+# outputs after each click.
+click_genre_artists <- function(clicks, open_artist_result = TRUE, with_open_artist = TRUE) {
+  for (memo in c("get_top_genres_memo", "get_genre_artists_memo", "get_artist_stats_memo")) {
+    forget_memo(genre_filter, memo)
+  }
+  local_spotify_api(function(req) stop("unexpected Spotify request"), lastfm = lastfm_mock(), env = parent.frame())
+  opened <- character(0)
+  open_artist <- function(name) {
+    opened <<- c(opened, name)
+    open_artist_result
+  }
+  after <- list()
+  testServer(
+    genre_filter$server,
+    args = list(open_artist = if (with_open_artist) open_artist),
+    {
+      session$setInputs(genre = "rock", search = 1)
+      after[["search"]] <<- list(message = output$message, table = output$artist_table)
+      for (click in clicks) {
+        do.call(session$setInputs, click)
+        after[[length(after) + 1]] <<- list(message = output$message, table = output$artist_table)
+      }
+    }
+  )
+  list(opened = opened, after = after)
+}
+
+# The rendered HTML of each cell in the table's Artist column
+artist_cells <- function(table) {
+  columns <- fromJSON(table, simplifyVector = FALSE)$x$tag$attribs$columns
+  artist_column <- keep(columns, \(column) column$id == "name")[[1]]
+  unlist(artist_column$cell)
+}
+
+test_that("artist names are buttons that report which artist was clicked", {
+  cells <- artist_cells(click_genre_artists(list())$after$search$table)
+  expect_equal(length(cells), 2)
+  expect_match(cells, '<button type="button" class="genre-artist-link"', fixed = TRUE, all = TRUE)
+  expect_match(cells, 'data-input-id="proxy1-artist_clicked"', fixed = TRUE, all = TRUE)
+  expect_match(cells[[2]], 'data-artist="Artist B"', fixed = TRUE)
+})
+
+test_that("each artist keeps an icon link to their Last.fm page", {
+  cell <- artist_cells(click_genre_artists(list())$after$search$table)[[1]]
+  expect_match(cell, 'href="https://www.last.fm/music/Artist+A"', fixed = TRUE)
+  expect_match(cell, 'class="lastfm-link"', fixed = TRUE)
+  expect_match(cell, 'aria-label="Open Artist A on Last.fm"', fixed = TRUE)
+  # Rendered as an icon, not shown as escaped SVG text
+  expect_match(cell, "<svg ", fixed = TRUE)
+  expect_no_match(cell, "&lt;svg", fixed = TRUE)
+})
+
+test_that("artist names aren't buttons when the app doesn't provide open_artist", {
+  cells <- artist_cells(click_genre_artists(list(), with_open_artist = FALSE)$after$search$table)
+  expect_no_match(cells, "genre-artist-link", fixed = TRUE)
+  expect_match(cells, 'class="lastfm-link"', fixed = TRUE, all = TRUE)
+})
+
+test_that("clicking an artist's name or chart bar asks the app to open their profile", {
+  result <- click_genre_artists(list(
+    list(artist_clicked = "Artist A"),
+    list(chart_click = "Artist B")
+  ))
+  expect_equal(result$opened, c("Artist A", "Artist B"))
+})
+
+test_that("a chart bar being deselected doesn't open anything", {
+  result <- click_genre_artists(list(list(chart_click = NULL)))
+  expect_equal(result$opened, character(0))
+})
+
+test_that("says so when Spotify has no match, until the next genre search", {
+  result <- click_genre_artists(
+    list(list(artist_clicked = "Artist A"), list(search = 2)),
+    open_artist_result = FALSE
+  )
+  expect_equal(result$after[[2]]$message, "'Artist A' wasn't found on Spotify.")
+  expect_equal(result$after[[3]]$message, "")
 })

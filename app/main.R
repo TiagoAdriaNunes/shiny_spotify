@@ -16,6 +16,7 @@ box::use(
     renderText,
     tabPanel,
     tags,
+    updateNavbarPage,
     useBusyIndicators
   ],
 )
@@ -54,6 +55,9 @@ ui <- function(id) {
       "Spotify API was changed, the app is being adjusted."
     ),
     navbarPage(
+      # An id so the server can switch tabs, e.g. to open an artist's profile
+      # from the genre results
+      id = ns("tabs"),
       title = "Spotify Search App",
       inverse = TRUE,
       windowTitle = "Spotify Search App",
@@ -100,16 +104,24 @@ server <- function(id) {
     # Start with the default artist selected so the page isn't empty
     selected_artist_id <- reactiveVal(default_artist$id)
     selected_artist_name <- reactiveVal(default_artist$name)
-    # Call artist search server and pass the reactive selected_artist_id
-    artist_search$server("artist_search", selected_artist_id, selected_artist_name)
+    # Call artist search server and pass the reactive selected_artist_id. It
+    # returns open_artist(name), which runs the same search from elsewhere.
+    open_artist <- artist_search$server("artist_search", selected_artist_id, selected_artist_name)
     # Call artist profile server and pass the reactive selected_artist_id
     artist_profile$server("artist_profile", selected_artist_id)
     # Call artist top tracks server and pass the reactive selected_artist_name
     artist_top_tracks$server("artist_top_tracks", selected_artist_name)
     # Call related artists server and pass only the artist name
     related_artists$server("related_artists", selected_artist_name)
-    # Call genre filter server logic
-    genre_filter$server("genre_filter")
+    # Clicking an artist in the genre results opens their profile: search for
+    # them, and when found switch to the profile tab
+    genre_filter$server("genre_filter", open_artist = function(name) {
+      found <- open_artist(name)
+      if (found) {
+        updateNavbarPage(session, "tabs", selected = "Artist Profile")
+      }
+      found
+    })
     # Define output$message
     output$message <- renderText({
       "Spotify Search App!"

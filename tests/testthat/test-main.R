@@ -87,3 +87,30 @@ test_that("the API notice is styled by its class in main.scss, not inline", {
   expect_no_match(html, "class=\"api-notice\"[^>]*style=")
   expect_match(html, '<div class="api-notice">Spotify API was changed', fixed = TRUE)
 })
+
+test_that("clicking an artist in the genre results loads their profile", {
+  forget_memo(artist_profile, "get_artist_memo")
+  forget_memo(artist_top_tracks, "get_artist_top_tracks_memoized")
+  forget_memo(related_artists, "get_similar_artists_memo")
+  # Spotify finds "Radiohead" by name, then serves its profile
+  local_spotify_api(
+    function(req) {
+      url <- url_parse(req$url)
+      if (url$path == "/v1/search" && url$query$type == "artist") {
+        return(response_json(body = list(artists = list(items = list(list(id = "rh-id", name = "Radiohead"))))))
+      }
+      if (url$path == "/v1/artists/rh-id") {
+        return(response_json(body = list(id = "rh-id", name = "Radiohead")))
+      }
+      spotify_mock(req)
+    },
+    lastfm = lastfm_mock
+  )
+  testServer(server, {
+    session$flushReact()
+    expect_equal(output[["artist_profile-artist_name"]], "Daft Punk")
+    session$setInputs(`genre_filter-artist_clicked` = "Radiohead")
+    expect_equal(output[["artist_profile-artist_name"]], "Radiohead")
+    expect_equal(output[["artist_search-artist_info"]], "Found artist: Radiohead")
+  })
+})

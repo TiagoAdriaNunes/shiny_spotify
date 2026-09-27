@@ -35,6 +35,44 @@ $genre-table-min-height: 475px;
   min-height: $genre-table-min-height;
 }
 
+// An artist in the genre results: the name is a button that opens their
+// profile, styled as a link; the icon beside it opens their Last.fm page
+.genre-artist {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.genre-artist-link {
+  background: none;
+  border: 0;
+  color: #1db954;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+  }
+}
+
+.lastfm-link {
+  color: inherit;
+  font-size: 0.8em;
+  opacity: 0.6;
+
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+  }
+}
+
+// Clicking a bar opens that artist's profile
+.genre-chart .apexcharts-bar-area {
+  cursor: pointer;
+}
+
 .spotify-link {
   color: #1db954;
   font-weight: bold;

@@ -17,3 +17,13 @@ document.addEventListener('keydown', (event) => {
   input.dispatchEvent(new Event('change', { bubbles: true }));
   button.click();
 });
+
+// Artist names in the genre results table open that artist's profile. Each
+// name is a button carrying the Shiny input to notify (data-input-id) and the
+// artist's name (data-artist); see genre_artist_cell() in genre_filter.R.
+// priority "event" sends it even when the same artist is clicked twice.
+document.addEventListener('click', (event) => {
+  const button = event.target.closest('.genre-artist-link');
+  if (!button || !window.Shiny) return;
+  window.Shiny.setInputValue(button.dataset.inputId, button.dataset.artist, { priority: 'event' });
+});

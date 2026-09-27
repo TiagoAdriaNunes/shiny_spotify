@@ -1,6 +1,9 @@
 box::use(
   bslib[input_task_button],
-  checkmate[test_data_frame],
+  checkmate[
+    assert_string,
+    test_data_frame
+  ],
   htmltools[tagAppendAttributes],
   memoise[memoise],
   shiny[
@@ -12,7 +15,8 @@ box::use(
     req,
     tags,
     textInput,
-    textOutput
+    textOutput,
+    updateTextInput
   ],
 )
 box::use(
@@ -42,6 +46,9 @@ ui <- function(id) {
 }
 
 # Server function for the module
+#' @return A function `open_artist(name)` that searches for `name` exactly as
+#'   if it had been typed and searched, showing it in the search box. It
+#'   returns TRUE when an artist was found and selected, FALSE otherwise.
 #' @export
 server <- function(id, selected_artist_id, selected_artist_name) {
   moduleServer(id, function(input, output, session) {
@@ -51,12 +58,13 @@ server <- function(id, selected_artist_id, selected_artist_name) {
     search_message <- reactiveVal("")
     output$artist_info <- renderText(search_message())
 
-    observeEvent(input$search, {
-      req(input$artist_name) # Ensure artist_name input is not empty
+    # Searches Spotify for `name` and selects the first matching artist.
+    # Returns TRUE when one was found.
+    search_artist <- function(name) {
       # Use the memoized version of search_spotify to cache the results
       search_failed <- FALSE
       artist_result <- tryCatch(
-        search_spotify_memo(input$artist_name, type = "artist"),
+        search_spotify_memo(name, type = "artist"),
         error = function(e) {
           warning("Spotify search failed: ", conditionMessage(e), call. = FALSE)
           search_failed <<- TRUE
@@ -65,18 +73,30 @@ server <- function(id, selected_artist_id, selected_artist_name) {
       )
       if (search_failed) {
         search_message("Artist search unavailable. Please try again later.")
-      } else if (test_data_frame(artist_result, min.rows = 1)) {
-        artist_id <- artist_result$id[1] # Get the first result's artist ID
-        artist_name <- artist_result$name[1] # Get the artist name
-        # Store the artist ID in the reactive value
-        selected_artist_id(artist_id)
-        # Store the artist name in the reactive value
-        selected_artist_name(artist_name)
-        # Display artist's name in the output
-        search_message(paste("Found artist:", artist_name))
-      } else {
-        search_message("Artist not found.")
+        return(FALSE)
       }
+      if (!test_data_frame(artist_result, min.rows = 1)) {
+        search_message("Artist not found.")
+        return(FALSE)
+      }
+      artist_name <- artist_result$name[1]
+      selected_artist_id(artist_result$id[1])
+      selected_artist_name(artist_name)
+      search_message(paste("Found artist:", artist_name))
+      TRUE
+    }
+
+    observeEvent(input$search, {
+      req(input$artist_name) # Ensure artist_name input is not empty
+      search_artist(input$artist_name)
     })
+
+    # Used from other tabs (e.g. clicking an artist in the genre results):
+    # shows the name in the search box so it's clear what was searched
+    function(name) {
+      assert_string(name, min.chars = 1)
+      updateTextInput(session, "artist_name", value = name)
+      search_artist(name)
+    }
   })
 }
