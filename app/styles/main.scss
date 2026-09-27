@@ -1,0 +1,318 @@
+// Heights reserved before content loads, so the page doesn't jump when it
+// arrives. Measured from the loaded page: a result card is 638px, and the
+// genre table is 473px at its default 10 rows per page (20 rows can still
+// grow it).
+$result-card-min-height: 640px;
+$genre-table-min-height: 475px;
+
+.result-card {
+  min-height: $result-card-min-height;
+}
+
+// The image's width/height attributes reserve its space before it
+// downloads; this lets it shrink proportionally on narrow cards
+.artist-image {
+  text-align: center;
+
+  img {
+    aspect-ratio: 1 / 1;
+    height: auto;
+    max-width: 100%;
+    object-fit: cover;
+  }
+}
+
+.genre-table {
+  min-height: $genre-table-min-height;
+}
+
+// An artist in the genre results: the name is a button that opens their
+// profile, styled as a link; the icon beside it opens their Last.fm page
+.genre-artist {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.genre-artist-link {
+  background: none;
+  border: 0;
+  color: #1db954;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+  }
+}
+
+.lastfm-link {
+  color: inherit;
+  font-size: 0.8em;
+  opacity: 0.6;
+
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+  }
+}
+
+.genre-charts {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+
+  @media (min-width: 992px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.genre-chart {
+  min-width: 0;
+
+  .apexcharts-menu {
+    background-color: #1f1f1f;
+    border-color: #444;
+    color: #e0e0e0;
+
+    .apexcharts-menu-item {
+      color: #e0e0e0;
+
+      &:hover,
+      &:focus-visible {
+        background-color: #3a3a3a;
+        color: #fff;
+      }
+    }
+  }
+}
+
+// Clicking a bar opens that artist's profile
+.genre-chart .apexcharts-bar-area {
+  cursor: pointer;
+}
+
+// The related artists network, with the "Open profile" button for a
+// selected node over its top-right corner, opposite the "Select by id"
+// dropdown, so the button appearing doesn't move the network
+.related-network {
+  position: relative;
+}
+
+.network-actions {
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 1;
+
+  .btn {
+    background-color: #1db954;
+    border: 0;
+    color: #fff;
+
+    &:hover,
+    &:focus-visible {
+      background-color: #1ed760;
+    }
+  }
+}
+
+.network-message {
+  background-color: #1f1f1f;
+  border-radius: 4px;
+  margin: 0;
+  padding: 4px 8px;
+}
+
+.spotify-link {
+  color: #1db954;
+  font-weight: bold;
+}
+
+.release-stats {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  margin: 8px 0;
+}
+
+.release-stat {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 6px;
+  text-align: center;
+}
+
+.release-stat-count {
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.release-stat-label {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+.genre-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.genre-tag {
+  background-color: #1db954;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.8rem;
+  padding: 2px 10px;
+}
+
+.genre-search-link {
+  border: 0;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background-color: #168a40;
+    text-decoration: underline;
+  }
+}
+
+.artist-search {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+
+  .shiny-input-container {
+    flex: 1 1 240px;
+    margin-bottom: 0;
+    max-width: 480px;
+    // For the clear (×) button placed inside the box
+    position: relative;
+
+    input {
+      // Room for the × so long names don't run under it
+      padding-right: 2.5rem;
+    }
+  }
+
+  // The × that empties the box, inside its right edge
+  .search-clear {
+    align-items: center;
+    background: none;
+    border: 0;
+    color: #6c757d;
+    display: flex;
+    height: 100%;
+    padding: 0 0.75rem;
+    position: absolute;
+    right: 0;
+    top: 0;
+
+    &:hover,
+    &:focus-visible {
+      color: #212529;
+    }
+  }
+
+  // Nothing to clear while the box is empty (its placeholder is showing)
+  input:placeholder-shown + .search-clear {
+    display: none;
+  }
+
+  .shiny-text-output {
+    opacity: 0.8;
+
+    // Shiny draws a busy spinner on every recalculating text output. The
+    // result cards already show one while a search loads, so this status
+    // message doesn't get its own.
+    &.recalculating::after {
+      display: none;
+    }
+  }
+}
+
+// Spotify track players. Each one loads on its own, so its wrapper shows the
+// track's cover, title and artists straight away, laid out like the player,
+// and the player fades in over it once loaded (the view adds .is-loaded from
+// the iframe's onload)
+.track-embed {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  height: 80px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  position: relative;
+
+  iframe {
+    border: 0;
+    display: block;
+    height: 100%;
+    inset: 0;
+    opacity: 0;
+    position: absolute;
+    transition: opacity 0.4s ease;
+    width: 100%;
+
+    &.is-loaded {
+      opacity: 1;
+    }
+  }
+}
+
+.track-embed-placeholder {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  height: 100%;
+  padding: 8px;
+  transition: opacity 0.4s ease;
+
+  // Cross-fade: fade out as the player fades in, so the two texts don't
+  // show on top of each other mid-fade
+  .track-embed:has(iframe.is-loaded) & {
+    opacity: 0;
+  }
+
+  img {
+    border-radius: 6px;
+    flex: none;
+    height: 64px;
+    object-fit: cover;
+    width: 64px;
+  }
+}
+
+// min-width lets the title and artists shrink so long names get an ellipsis
+.track-embed-text {
+  min-width: 0;
+}
+
+.track-embed-title,
+.track-embed-artists {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.track-embed-title {
+  font-weight: bold;
+}
+
+.track-embed-artists {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track-embed iframe,
+  .track-embed-placeholder {
+    transition: none;
+  }
+}

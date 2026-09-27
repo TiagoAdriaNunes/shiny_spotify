@@ -1,0 +1,118 @@
+box::use(
+  httr2[response, response_json],
+  shiny[isolate, reactiveVal, testServer],
+  testthat[expect_equal, expect_match, expect_no_match, expect_null, expect_warning, test_that],
+)
+box::use(
+  app / view / artist_search,
+)
+
+test_that("the search input is named for screen readers without a visible label", {
+  html <- as.character(artist_search$ui("search"))
+  expect_match(html, 'id="search-artist_name"[^>]*aria-label="Artist name"')
+  # A visible label would push the input below the Search button
+  expect_no_match(html, "<label[^>]*>[^<]+</label>")
+})
+
+test_that("the Search button says it's busy without a spinner of its own", {
+  html <- as.character(artist_search$ui("search"))
+  # The result cards show the loading spinner; one on the button too was noise
+  expect_match(html, '<span slot="busy">Searching...</span>', fixed = TRUE)
+  expect_no_match(html, "fa-spin", fixed = TRUE)
+})
+
+# Runs a search for "Artist" against the mocked `api` and returns the
+# rendered message plus the values written to the shared reactives.
+run_search <- function(api) {
+  forget_memo(artist_search, "search_spotify_memo")
+  local_spotify_api(api, env = parent.frame())
+  selected_id <- reactiveVal(NULL)
+  selected_name <- reactiveVal(NULL)
+  message <- NULL
+  testServer(
+    artist_search$server,
+    args = list(selected_artist_id = selected_id, selected_artist_name = selected_name),
+    {
+      session$setInputs(artist_name = "Artist", search = 1)
+      message <<- output$artist_info
+    }
+  )
+  list(message = message, id = isolate(selected_id()), name = isolate(selected_name()))
+}
+
+test_that("a successful search selects the first matching artist", {
+  result <- run_search(function(req) {
+    response_json(body = list(artists = list(items = list(
+      list(id = "id1", name = "Artist A"),
+      list(id = "id2", name = "Artist B")
+    ))))
+  })
+  expect_equal(result$message, "Found artist: Artist A")
+  expect_equal(result$id, "id1")
+  expect_equal(result$name, "Artist A")
+})
+
+test_that("a search with no results says so and selects nothing", {
+  result <- run_search(function(req) {
+    response_json(body = list(artists = list(items = list())))
+  })
+  expect_equal(result$message, "Artist not found.")
+  expect_null(result$id)
+  expect_null(result$name)
+})
+
+test_that("an API failure shows an unavailable message instead of crashing", {
+  expect_warning(
+    result <- run_search(function(req) response(status_code = 503)),
+    "Spotify search failed"
+  )
+  expect_equal(result$message, "Artist search unavailable. Please try again later.")
+  expect_null(result$id)
+})
+
+# Calls the open_artist() function the module returns, as another tab would,
+# and reports what it returned and selected
+run_open_artist <- function(name, api) {
+  forget_memo(artist_search, "search_spotify_memo")
+  local_spotify_api(api, env = parent.frame())
+  selected_id <- reactiveVal(NULL)
+  selected_name <- reactiveVal(NULL)
+  result <- NULL
+  testServer(
+    artist_search$server,
+    args = list(selected_artist_id = selected_id, selected_artist_name = selected_name),
+    {
+      open_artist <- session$getReturned()
+      found <- open_artist(name)
+      session$flushReact()
+      result <<- list(found = found, message = output$artist_info)
+    }
+  )
+  c(result, list(id = isolate(selected_id()), name = isolate(selected_name())))
+}
+
+test_that("open_artist selects the artist like a typed search and reports it was found", {
+  result <- run_open_artist("Artist A", function(req) {
+    response_json(body = list(artists = list(items = list(list(id = "id1", name = "Artist A")))))
+  })
+  expect_equal(result$found, TRUE)
+  expect_equal(result$id, "id1")
+  expect_equal(result$name, "Artist A")
+  expect_equal(result$message, "Found artist: Artist A")
+})
+
+test_that("open_artist reports when Spotify has no match, selecting nothing", {
+  result <- run_open_artist("Nobody", function(req) {
+    response_json(body = list(artists = list(items = list())))
+  })
+  expect_equal(result$found, FALSE)
+  expect_null(result$id)
+  expect_equal(result$message, "Artist not found.")
+})
+
+test_that("the search box has a labelled clear button right after its input", {
+  html <- as.character(artist_search$ui("search"))
+  # Right after the input: main.scss hides it while the box is empty
+  expect_match(html, '<input id="search-artist_name"[^>]*/>\\s*<button type="button" class="search-clear"')
+  expect_match(html, 'aria-label="Clear search"', fixed = TRUE)
+})
