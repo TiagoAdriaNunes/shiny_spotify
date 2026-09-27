@@ -25,7 +25,6 @@ box::use(
       get_artist,
       get_artist_albums,
       get_artist_top_tracks,
-      get_spotify_access_token,
       search_spotify
     ],
 )
@@ -35,28 +34,64 @@ artist_items <- list(
   list(id = "id2", name = "Artist B")
 )
 
-describe("get_spotify_access_token", {
-  it("returns the access token from a successful response", {
-    local_mocked_responses(function(req) {
-      response_json(body = list(access_token = "abc123", token_type = "Bearer"))
-    })
-    expect_equal(get_spotify_access_token("id", "secret"), "abc123")
+describe("token reuse", {
+  # Fake Spotify counting token requests and answering API calls with an
+  # empty search; `api_status` lets a test make API calls fail
+  counting_spotify <- function(api_status = function() 200) {
+    calls <- new.env()
+    calls$token <- 0
+    calls$api <- 0
+    local_clean_token_cache(env = parent.frame())
+    local_envvar(
+      SPOTIFY_CLIENT_ID = "test-client-id",
+      SPOTIFY_CLIENT_SECRET = "test-client-secret",
+      .local_envir = parent.frame()
+    )
+    local_mocked_responses(
+      function(req) {
+        if (grepl("accounts.spotify.com", req$url, fixed = TRUE)) {
+          calls$token <- calls$token + 1
+          return(response_json(body = list(access_token = paste0("token-", calls$token), expires_in = 3600)))
+        }
+        calls$api <- calls$api + 1
+        calls$last_auth <- req$headers$Authorization
+        status <- api_status()
+        if (status != 200) {
+          return(response(status_code = status, body = charToRaw("rejected")))
+        }
+        response_json(body = list(artists = list(items = artist_items)))
+      },
+      env = parent.frame()
+    )
+    calls
+  }
+
+  it("requests one token for many API calls", {
+    calls <- counting_spotify()
+    search_spotify("Artist A")
+    search_spotify("Artist B")
+    get_artist("id1")
+    expect_equal(calls$api, 3)
+    expect_equal(calls$token, 1)
   })
 
-  it("raises the error description when Spotify rejects the credentials", {
-    local_mocked_responses(function(req) {
-      response_json(
-        status_code = 400,
-        body = list(error = "invalid_client", error_description = "Invalid client secret")
-      )
+  it("gets a fresh token and retries once when Spotify rejects the cached one", {
+    statuses <- c(401, 200)
+    calls <- counting_spotify(api_status = function() {
+      status <- statuses[[1]]
+      statuses <<- statuses[-1]
+      status
     })
-    expect_error(get_spotify_access_token("id", "wrong"), "Invalid client secret")
+    result <- search_spotify("Artist A")
+    expect_data_frame(result, nrows = 2)
+    expect_equal(calls$api, 2)
+    expect_equal(calls$token, 2)
   })
 
-  it("rejects missing credentials before calling Spotify", {
-    local_envvar(SPOTIFY_CLIENT_ID = "", SPOTIFY_CLIENT_SECRET = "")
-    expect_error(get_spotify_access_token(), "client_id")
-    expect_error(get_spotify_access_token("id", ""), "client_secret")
+  it("reports an error rather than retrying forever when a fresh token is rejected too", {
+    calls <- counting_spotify(api_status = function() 401)
+    expect_error(search_spotify("Artist A"), "Spotify API error \\(401\\)")
+    expect_equal(calls$api, 2)
   })
 })
 

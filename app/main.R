@@ -21,7 +21,6 @@ box::use(
 )
 
 box::use(
-  app / logic / auth,
   app / view / artist_profile,
   app / view / artist_search,
   app / view / artist_top_tracks,

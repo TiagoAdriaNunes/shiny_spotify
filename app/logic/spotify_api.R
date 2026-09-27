@@ -17,7 +17,8 @@
 #
 # spotifyr itself is no longer used at all: its only piece we still needed
 # was get_spotify_access_token(), a thin OAuth client-credentials POST,
-# reimplemented below directly with httr2. That drops a GitHub-only
+# reimplemented directly with httr2 in app/logic/auth.R (which also caches
+# the token). That drops a GitHub-only
 # dependency (spotifyr isn't on CRAN -- github.com/charlie86/spotifyr/
 # issues/201) that otherwise pulled in a pile of transitive packages for a
 # single ~10-line call.
@@ -31,13 +32,10 @@ box::use(
   dplyr[as_tibble],
   httr2[
     request,
-    req_auth_basic,
     req_auth_bearer_token,
-    req_body_form,
     req_error,
     req_perform,
     req_url_query,
-    resp_body_json,
     resp_body_string,
     resp_status,
   ],
@@ -45,29 +43,13 @@ box::use(
   stringr[str_glue],
 )
 
+box::use(
+  app / logic / auth[clear_spotify_token, get_spotify_access_token],
+)
+
 # Documented max for /v1/search; used as a retry fallback if a request for
 # more (e.g. a future default drifting again) gets rejected.
 safe_limit <- 10
-
-#' @export
-get_spotify_access_token <- function(
-  client_id = Sys.getenv("SPOTIFY_CLIENT_ID"),
-  client_secret = Sys.getenv("SPOTIFY_CLIENT_SECRET")
-) {
-  assert_string(client_id, min.chars = 1)
-  assert_string(client_secret, min.chars = 1)
-  resp <- request("https://accounts.spotify.com/api/token") |>
-    req_auth_basic(client_id, client_secret) |>
-    req_body_form(grant_type = "client_credentials") |>
-    req_error(is_error = function(resp) FALSE) |>
-    req_perform()
-
-  body <- resp_body_json(resp)
-  if (!test_null(body$error)) {
-    stop(str_glue("Could not authenticate with given Spotify credentials:\n\t{body$error_description}"))
-  }
-  body$access_token
-}
 
 spotify_request <- function(url, query = list()) {
   token <- get_spotify_access_token()
@@ -79,6 +61,14 @@ spotify_request <- function(url, query = list()) {
 
 spotify_get <- function(url, query = list()) {
   resp <- spotify_request(url, query) |> req_perform()
+
+  # The token is cached (see app/logic/auth.R), and Spotify can reject one
+  # before its stated expiry, e.g. if it was revoked. Get a fresh token and
+  # retry once; a second 401 is reported as an error below.
+  if (resp_status(resp) == 401) {
+    clear_spotify_token()
+    resp <- spotify_request(url, query) |> req_perform()
+  }
 
   if (resp_status(resp) == 400 && !test_null(query$limit) && query$limit > safe_limit) {
     body <- resp_body_string(resp)
