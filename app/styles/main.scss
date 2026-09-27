@@ -73,6 +73,38 @@ $genre-table-min-height: 475px;
   cursor: pointer;
 }
 
+// The related artists network, with the "Open profile" button for a
+// selected node over its top-right corner, opposite the "Select by id"
+// dropdown, so the button appearing doesn't move the network
+.related-network {
+  position: relative;
+}
+
+.network-actions {
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 1;
+
+  .btn {
+    background-color: #1db954;
+    border: 0;
+    color: #fff;
+
+    &:hover,
+    &:focus-visible {
+      background-color: #1ed760;
+    }
+  }
+}
+
+.network-message {
+  background-color: #1f1f1f;
+  border-radius: 4px;
+  margin: 0;
+  padding: 4px 8px;
+}
+
 .spotify-link {
   color: #1db954;
   font-weight: bold;

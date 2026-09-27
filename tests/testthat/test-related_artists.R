@@ -1,11 +1,11 @@
 box::use(
-  checkmate[expect_class, expect_data_frame],
+  checkmate[expect_class, expect_data_frame, test_null],
   httr2[
     response_json,
     url_parse
   ],
-  shiny[reactiveVal, testServer],
-  testthat[describe, expect_equal, expect_error, expect_match, it, test_that],
+  shiny[NS, reactiveVal, testServer],
+  testthat[describe, expect_equal, expect_error, expect_match, expect_null, it, test_that],
 )
 box::use(
   app/view/related_artists,
@@ -133,5 +133,86 @@ describe("render_similar_artists_network node structure", {
   it("includes edges from main artist to similar artists", {
     result <- render_similar_artists_network(NULL, "Artist A", similar_artists)
     expect_data_frame(result$x$edges, min.rows = 2)
+  })
+})
+
+describe("opening a related artist's profile", {
+  lastfm_one_similar <- function(req) {
+    response_json(body = list(similarartists = list(artist = list(list(name = "Artist B", match = "0.9")))))
+  }
+
+  it("reports node selection to the module's input", {
+    local_spotify_api(function(req) stop("unexpected Spotify request"), lastfm = lastfm_one_similar)
+    network <- render_similar_artists_network(NS("related"), "Artist A", data.frame(name = "Artist B", match = 0.9))
+    expect_match(network$x$events$selectNode, "Shiny.setInputValue('related-selected_artist'", fixed = TRUE)
+    expect_match(network$x$events$selectNode, "this.body.data.nodes.get(params.nodes[0]).label", fixed = TRUE)
+    expect_match(network$x$events$deselectNode, "Shiny.setInputValue('related-selected_artist', null", fixed = TRUE)
+  })
+
+  it("doesn't report selection when there's nowhere to open a profile", {
+    local_spotify_api(function(req) stop("unexpected Spotify request"), lastfm = lastfm_one_similar)
+    network <- render_similar_artists_network(NULL, "Artist A", data.frame(name = "Artist B", match = 0.9))
+    expect_null(network$x$events)
+  })
+
+  # Runs the module for "Artist A" and applies `inputs` (a list of input value
+  # lists) in turn. Returns the artists open_artist() was asked for and the
+  # actions area's HTML after each input.
+  run_node_actions <- function(inputs, open_artist_result = TRUE) {
+    forget_memo(related_artists, "get_similar_artists_memo")
+    local_spotify_api(function(req) stop("unexpected Spotify request"), lastfm = lastfm_one_similar, env = parent.frame())
+    opened <- character(0)
+    open_artist <- function(name) {
+      opened <<- c(opened, name)
+      open_artist_result
+    }
+    actions <- list()
+    testServer(
+      related_artists$server,
+      args = list(artist_name = reactiveVal("Artist A"), open_artist = open_artist),
+      {
+        session$flushReact()
+        for (values in inputs) {
+          do.call(session$setInputs, values)
+          html <- output$node_actions$html
+          actions[[length(actions) + 1]] <<- if (test_null(html)) "" else as.character(html)
+        }
+      }
+    )
+    list(opened = opened, actions = actions)
+  }
+
+  it("offers to open a selected artist's profile, and opens it on click", {
+    result <- run_node_actions(list(
+      list(selected_artist = "Artist B"),
+      list(open_selected = 1)
+    ))
+    expect_match(result$actions[[1]], "Open Artist B's profile", fixed = TRUE)
+    expect_match(result$actions[[1]], 'id="proxy1-open_selected"', fixed = TRUE)
+    expect_equal(result$opened, "Artist B")
+  })
+
+  it("offers nothing for the artist already shown, or after deselecting", {
+    result <- run_node_actions(list(
+      list(selected_artist = "Artist A"),
+      list(selected_artist = "Artist B"),
+      list(selected_artist = NULL)
+    ))
+    expect_equal(result$actions[[1]], "")
+    expect_match(result$actions[[2]], "Open Artist B", fixed = TRUE)
+    expect_equal(result$actions[[3]], "")
+  })
+
+  it("says so when Spotify has no match, until another node is selected", {
+    result <- run_node_actions(
+      list(
+        list(selected_artist = "Artist B"),
+        list(open_selected = 1),
+        list(selected_artist = "Artist C")
+      ),
+      open_artist_result = FALSE
+    )
+    expect_match(result$actions[[2]], "'Artist B' wasn't found on Spotify.", fixed = TRUE)
+    expect_match(result$actions[[3]], "Open Artist C", fixed = TRUE)
   })
 })

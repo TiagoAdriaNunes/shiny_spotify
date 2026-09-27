@@ -111,17 +111,20 @@ server <- function(id) {
     artist_profile$server("artist_profile", selected_artist_id)
     # Call artist top tracks server and pass the reactive selected_artist_name
     artist_top_tracks$server("artist_top_tracks", selected_artist_name)
-    # Call related artists server and pass only the artist name
-    related_artists$server("related_artists", selected_artist_name)
-    # Clicking an artist in the genre results opens their profile: search for
-    # them, and when found switch to the profile tab
-    genre_filter$server("genre_filter", open_artist = function(name) {
+    # Opens an artist's profile from anywhere in the app (the genre results,
+    # the related artists network): searches for them and, when found, shows
+    # the profile tab. Returns whether they were found.
+    open_artist_profile <- function(name) {
       found <- open_artist(name)
       if (found) {
         updateNavbarPage(session, "tabs", selected = "Artist Profile")
       }
       found
-    })
+    }
+    # Call related artists server; selecting a node offers to open its profile
+    related_artists$server("related_artists", selected_artist_name, open_artist = open_artist_profile)
+    # Clicking an artist in the genre results opens their profile
+    genre_filter$server("genre_filter", open_artist = open_artist_profile)
     # Define output$message
     output$message <- renderText({
       "Spotify Search App!"

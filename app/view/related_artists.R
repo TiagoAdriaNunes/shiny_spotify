@@ -1,9 +1,10 @@
 box::use(
-  checkmate[assert_character, assert_string, test_data_frame, test_string],
+  checkmate[assert_character, assert_string, test_data_frame, test_function, test_string],
   memoise[memoise],
   purrr[compact, map, set_names],
-  shiny[moduleServer, NS, renderUI, tags, uiOutput],
-  visNetwork[visEdges, visInteraction, visNetwork, visNodes, visOptions],
+  shiny[actionButton, moduleServer, NS, observeEvent, reactiveVal, renderUI, req, tags, uiOutput],
+  stringr[str_glue],
+  visNetwork[visEdges, visEvents, visInteraction, visNetwork, visNodes, visOptions],
 )
 
 box::use(
@@ -35,7 +36,13 @@ tooltip_style <- paste(
 #' @export
 ui <- function(id) {
   ns <- NS(id)
-  uiOutput(ns("related_artists_network"))
+  # The "Open profile" button sits over the network's top-right corner (see
+  # .network-actions in main.scss), so it appearing doesn't move the network
+  tags$div(
+    class = "related-network",
+    uiOutput(ns("related_artists_network")),
+    uiOutput(ns("node_actions"), class = "network-actions")
+  )
 }
 
 # Helper function to fetch similar artists from Last.fm (cached via memoise)
@@ -151,17 +158,40 @@ render_similar_artists_network <- function(ns, main_artist_name, similar_artists
   # Sized explicitly because it's rendered through renderUI: without a
   # visNetworkOutput() container the widget falls back to a fixed 960px
   # width, wider than the card, which adds a horizontal scrollbar
-  visNetwork(nodes, edges, width = "100%", height = "400px") |>
+  network <- visNetwork(nodes, edges, width = "100%", height = "400px") |>
     visNodes(shape = "dot",
              size = 10,
              font = list(color = "white")) |>
     visEdges(arrows = "to", width = ~ weight * 5) |>
     visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
     visInteraction(tooltipStyle = tooltip_style)
+  if (test_function(ns)) {
+    network <- report_selected_node(network, ns("selected_artist"))
+  }
+  network
+}
+
+# Report the clicked node's artist name to the Shiny input `input_id`, and
+# NULL when it's deselected, so the server can offer to open their profile.
+# `this` is the vis network, whose nodes hold each artist's name as `label`.
+report_selected_node <- function(network, input_id) {
+  send <- function(value) {
+    as.character(str_glue(
+      "function(params) {{ Shiny.setInputValue('{input_id}', {value}, {{ priority: 'event' }}); }}"
+    ))
+  }
+  visEvents(
+    network,
+    selectNode = send("this.body.data.nodes.get(params.nodes[0]).label"),
+    deselectNode = send("null")
+  )
 }
 
 #' @export
-server <- function(id, artist_name) {
+#' @param open_artist Function taking an artist name that opens their profile
+#'   and returns TRUE, or FALSE when Spotify has no match (see
+#'   artist_search's server). NULL means no "Open profile" button.
+server <- function(id, artist_name, open_artist = NULL) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     # A single output that re-renders whenever the selected artist changes.
@@ -173,7 +203,46 @@ server <- function(id, artist_name) {
       if (!test_string(name, min.chars = 1)) {
         return(tags$p("No artist selected."))
       }
-      render_similar_artists_network(ns, name, fetch_similar_artists(name))
+      # Only report node clicks when there's somewhere to open them
+      render_similar_artists_network(if (test_function(open_artist)) ns, name, fetch_similar_artists(name))
+    })
+
+    # Clicking a node offers to open that artist's profile. Selecting stays
+    # separate from opening so clicking still just highlights connections.
+    selected_artist <- reactiveVal(NULL)
+    open_error <- reactiveVal("")
+    observeEvent(input$selected_artist, ignoreNULL = FALSE, {
+      selected_artist(input$selected_artist)
+      open_error("")
+    })
+    # A new network starts with nothing selected
+    observeEvent(artist_name(), {
+      selected_artist(NULL)
+      open_error("")
+    })
+
+    output$node_actions <- renderUI({
+      if (test_string(open_error(), min.chars = 1)) {
+        return(tags$p(class = "network-message", open_error()))
+      }
+      name <- selected_artist()
+      # Nothing to offer for no selection, or for the artist already shown
+      if (!test_string(name, min.chars = 1) || identical(name, artist_name())) {
+        return(NULL)
+      }
+      actionButton(
+        ns("open_selected"),
+        as.character(str_glue("Open {name}'s profile")),
+        class = "btn-sm"
+      )
+    })
+
+    observeEvent(input$open_selected, {
+      name <- selected_artist()
+      req(test_function(open_artist), test_string(name, min.chars = 1))
+      if (!open_artist(name)) {
+        open_error(as.character(str_glue("'{name}' wasn't found on Spotify.")))
+      }
     })
   })
 }
