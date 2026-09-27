@@ -14,6 +14,13 @@ test_that("the search input is named for screen readers without a visible label"
   expect_no_match(html, "<label[^>]*>[^<]+</label>")
 })
 
+test_that("the Search button says it's busy without a spinner of its own", {
+  html <- as.character(artist_search$ui("search"))
+  # The result cards show the loading spinner; one on the button too was noise
+  expect_match(html, '<span slot="busy">Searching...</span>', fixed = TRUE)
+  expect_no_match(html, "fa-spin", fixed = TRUE)
+})
+
 # Runs a search for "Artist" against the mocked `api` and returns the
 # rendered message plus the values written to the shared reactives.
 run_search <- function(api) {

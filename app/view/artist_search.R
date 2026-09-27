@@ -33,9 +33,9 @@ ui <- function(id) {
     # the button, so it's named for screen readers with aria-label instead
     textInput(ns("artist_name"), label = NULL, placeholder = "Enter artist name...") |>
       tagAppendAttributes(`aria-label` = "Artist name", .cssSelector = "input"),
-    # Button to trigger search; shows a spinner and is disabled while the
-    # search and the cards it updates are loading
-    input_task_button(ns("search"), "Search", label_busy = "Searching...", type = "default"),
+    # Button to trigger search; says "Searching..." and is disabled while the
+    # search runs. No busy icon: the result cards show the loading spinner.
+    input_task_button(ns("search"), "Search", label_busy = "Searching...", icon_busy = NULL, type = "default"),
     # Output to display artist information or error message
     textOutput(ns("artist_info"))
   )

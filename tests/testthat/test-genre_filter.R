@@ -128,3 +128,15 @@ test_that("the genre tab still renders when Last.fm's top tags can't be fetched"
   expect_match(html, 'id="genre_filter-genre"', fixed = TRUE)
   expect_no_match(html, "<option value=\"[^\"]+\">", perl = TRUE)
 })
+
+test_that("the results table reserves its height before a search", {
+  html <- render_genre_ui(lastfm_mock())
+  # .genre-table's min-height is set in main.scss
+  expect_match(html, '<div class="genre-table">\\s*<div [^>]*id="genre_filter-artist_table"')
+})
+
+test_that("the genre Search button says it's busy without a spinner of its own", {
+  html <- render_genre_ui(lastfm_mock())
+  expect_match(html, '<span slot="busy">Searching...</span>', fixed = TRUE)
+  expect_no_match(html, "fa-spin", fixed = TRUE)
+})

@@ -1,3 +1,40 @@
+// Heights reserved before content loads, so the page doesn't jump when it
+// arrives. Measured from the loaded page: a result card is 638px, and the
+// genre table is 473px at its default 10 rows per page (20 rows can still
+// grow it).
+$result-card-min-height: 640px;
+$genre-table-min-height: 475px;
+
+// Banner shown while the app is adapted to the Spotify API changes
+.api-notice {
+  background-color: #b91d1d;
+  color: #fff;
+  font-weight: bold;
+  padding: 8px 16px;
+  text-align: center;
+}
+
+.result-card {
+  min-height: $result-card-min-height;
+}
+
+// The image's width/height attributes reserve its space before it
+// downloads; this lets it shrink proportionally on narrow cards
+.artist-image {
+  text-align: center;
+
+  img {
+    aspect-ratio: 1 / 1;
+    height: auto;
+    max-width: 100%;
+    object-fit: cover;
+  }
+}
+
+.genre-table {
+  min-height: $genre-table-min-height;
+}
+
 .spotify-link {
   color: #1db954;
   font-weight: bold;
@@ -58,53 +95,91 @@
 
   .shiny-text-output {
     opacity: 0.8;
+
+    // Shiny draws a busy spinner on every recalculating text output. The
+    // result cards already show one while a search loads, so this status
+    // message doesn't get its own.
+    &.recalculating::after {
+      display: none;
+    }
   }
 }
 
-// Spotify track players. Each one loads on its own, so its wrapper is a
-// placeholder that holds the slot, and the player fades in once loaded
-// (the view adds .is-loaded from the iframe's onload)
+// Spotify track players. Each one loads on its own, so its wrapper shows the
+// track's cover, title and artists straight away, laid out like the player,
+// and the player fades in over it once loaded (the view adds .is-loaded from
+// the iframe's onload)
 .track-embed {
-  animation: track-embed-pulse 1.5s ease-in-out infinite;
-  background-color: #282828;
+  background-color: rgba(255, 255, 255, 0.06);
   border-radius: 12px;
   height: 80px;
   margin-bottom: 8px;
   overflow: hidden;
+  position: relative;
 
   iframe {
     border: 0;
     display: block;
+    height: 100%;
+    inset: 0;
     opacity: 0;
+    position: absolute;
     transition: opacity 0.4s ease;
+    width: 100%;
 
     &.is-loaded {
       opacity: 1;
     }
   }
+}
 
-  &:has(iframe.is-loaded) {
-    animation: none;
+.track-embed-placeholder {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  height: 100%;
+  padding: 8px;
+  transition: opacity 0.4s ease;
+
+  // Cross-fade: fade out as the player fades in, so the two texts don't
+  // show on top of each other mid-fade
+  .track-embed:has(iframe.is-loaded) & {
+    opacity: 0;
+  }
+
+  img {
+    border-radius: 6px;
+    flex: none;
+    height: 64px;
+    object-fit: cover;
+    width: 64px;
   }
 }
 
-@keyframes track-embed-pulse {
-  0%,
-  100% {
-    background-color: #282828;
-  }
+// min-width lets the title and artists shrink so long names get an ellipsis
+.track-embed-text {
+  min-width: 0;
+}
 
-  50% {
-    background-color: #333;
-  }
+.track-embed-title,
+.track-embed-artists {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.track-embed-title {
+  font-weight: bold;
+}
+
+.track-embed-artists {
+  font-size: 0.8rem;
+  opacity: 0.7;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .track-embed {
-    animation: none;
-
-    iframe {
-      transition: none;
-    }
+  .track-embed iframe,
+  .track-embed-placeholder {
+    transition: none;
   }
 }

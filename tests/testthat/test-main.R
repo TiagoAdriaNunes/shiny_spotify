@@ -7,6 +7,7 @@ box::use(
   testthat[
     expect_equal,
     expect_match,
+    expect_no_match,
     test_that
   ],
 )
@@ -76,5 +77,13 @@ test_that("the search box starts empty even though the default artist is shown",
 test_that("the three result cards reserve their height before loading", {
   local_spotify_api(spotify_mock, lastfm = lastfm_mock)
   html <- as.character(ui("app"))
-  expect_equal(lengths(regmatches(html, gregexpr("min-height:640px", html, fixed = TRUE))), 3)
+  # .result-card's min-height is set in main.scss
+  expect_equal(lengths(regmatches(html, gregexpr('class="card[^"]*\\bresult-card\\b', html))), 3)
+})
+
+test_that("the API notice is styled by its class in main.scss, not inline", {
+  local_spotify_api(spotify_mock, lastfm = lastfm_mock)
+  html <- as.character(ui("app"))
+  expect_no_match(html, "class=\"api-notice\"[^>]*style=")
+  expect_match(html, '<div class="api-notice">Spotify API was changed', fixed = TRUE)
 })

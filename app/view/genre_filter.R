@@ -100,12 +100,20 @@ ui <- function(id) {
             placeholder = "Type or select a genre"
           )
         ),
-        input_task_button(ns("search"), "Search", label_busy = "Searching...", type = "default"),
+        # No busy icon: the table and chart show the loading spinner, so the
+        # button just says "Searching..." and is disabled
+        input_task_button(ns("search"), "Search", label_busy = "Searching...", icon_busy = NULL, type = "default"),
         tags$p(tags$small(class = "text-muted", "Genres and artists from Last.fm"))
       ),
       mainPanel(
+        # The chart output is a fixed 400px already; the table's height is
+        # auto, so .genre-table reserves its space (see main.scss) to keep
+        # the page from jumping
         apexchartOutput(ns("listeners_chart")),
-        reactableOutput(ns("artist_table")),
+        tags$div(
+          class = "genre-table",
+          reactableOutput(ns("artist_table"))
+        ),
         textOutput(ns("message"))
       )
     )
