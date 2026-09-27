@@ -1,9 +1,9 @@
 box::use(
-  checkmate[assert_character, assert_string, test_data_frame, test_null],
+  checkmate[assert_character, assert_string, test_data_frame, test_string],
   memoise[memoise],
   purrr[compact, map, set_names],
-  shiny[moduleServer, NS, observe, observeEvent, renderUI, req, tags],
-  visNetwork[renderVisNetwork, visEdges, visNetwork, visNetworkOutput, visNodes, visOptions],
+  shiny[moduleServer, NS, renderUI, tags, uiOutput],
+  visNetwork[visEdges, visInteraction, visNetwork, visNodes, visOptions],
 )
 
 box::use(
@@ -13,10 +13,29 @@ box::use(
 # Memoize the formatted function for caching
 get_similar_artists_memo <- memoise(get_similar_artists_formatted)
 
+# Node tooltip style, matching the app's dark theme. visNetwork's default sets
+# a light background but its text colour as `font-color`, which isn't a CSS
+# property, so the text inherited the theme's white: white on cream. The
+# style must keep `position: fixed; visibility: hidden` for visNetwork to
+# position and toggle the tooltip.
+tooltip_style <- paste(
+  "position: fixed;",
+  "visibility: hidden;",
+  "padding: 5px 8px;",
+  "font-size: 14px;",
+  "color: #E0E0E0;",
+  "background-color: #1F1F1F;",
+  "border: 1px solid #444444;",
+  "border-radius: 4px;",
+  "box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.4);",
+  "max-width: 400px;",
+  "word-break: break-word;"
+)
+
 #' @export
 ui <- function(id) {
   ns <- NS(id)
-  visNetworkOutput(ns("related_artists_network"))
+  uiOutput(ns("related_artists_network"))
 }
 
 # Helper function to fetch similar artists from Last.fm (cached via memoise)
@@ -129,34 +148,32 @@ render_similar_artists_network <- function(ns, main_artist_name, similar_artists
       }
     }
   }
-  visNetwork(nodes, edges) |>
+  # Sized explicitly because it's rendered through renderUI: without a
+  # visNetworkOutput() container the widget falls back to a fixed 960px
+  # width, wider than the card, which adds a horizontal scrollbar
+  visNetwork(nodes, edges, width = "100%", height = "400px") |>
     visNodes(shape = "dot",
              size = 10,
              font = list(color = "white")) |>
     visEdges(arrows = "to", width = ~ weight * 5) |>
-    visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE)
+    visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) |>
+    visInteraction(tooltipStyle = tooltip_style)
 }
 
 #' @export
 server <- function(id, artist_name) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
-    observe({
-      if (test_null(artist_name())) {
-        output$related_artists_network <- renderUI({
-          tags$p("No artist selected.")
-        })
-      } else {
-        observeEvent(artist_name(), {
-          req(artist_name())
-          # Fetch similar artists
-          similar_artists <- fetch_similar_artists(artist_name())
-          # Render similar artists network
-          output$related_artists_network <- renderVisNetwork({
-            render_similar_artists_network(ns, artist_name(), similar_artists)
-          })
-        })
+    # A single output that re-renders whenever the selected artist changes.
+    # Fetching inside it marks the card as recalculating, so it shows a
+    # spinner while Last.fm is queried. renderUI rather than renderVisNetwork:
+    # the result is either the network or a message.
+    output$related_artists_network <- renderUI({
+      name <- artist_name()
+      if (!test_string(name, min.chars = 1)) {
+        return(tags$p("No artist selected."))
       }
+      render_similar_artists_network(ns, name, fetch_similar_artists(name))
     })
   })
 }

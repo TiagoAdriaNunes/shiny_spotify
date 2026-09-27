@@ -12,6 +12,7 @@ box::use(
     ax_xaxis,
     ax_yaxis
   ],
+  bslib[input_task_button],
   checkmate[
     test_data_frame,
     test_numeric
@@ -33,12 +34,11 @@ box::use(
     reactableTheme
   ],
   shiny[
-    actionButton,
+    eventReactive,
     fluidPage,
     mainPanel,
     moduleServer,
     NS,
-    observeEvent,
     renderText,
     req,
     selectizeInput,
@@ -100,7 +100,7 @@ ui <- function(id) {
             placeholder = "Type or select a genre"
           )
         ),
-        actionButton(ns("search"), "Search"),
+        input_task_button(ns("search"), "Search", label_busy = "Searching...", type = "default"),
         tags$p(tags$small(class = "text-muted", "Genres and artists from Last.fm"))
       ),
       mainPanel(
@@ -115,17 +115,16 @@ ui <- function(id) {
 # Server function
 server <- function(id) {
   moduleServer(id, function(input, output, session) {
-    clear_results <- function(message) {
-      output$artist_table <- renderReactable(NULL)
-      output$listeners_chart <- renderApexchart(NULL)
-      output$message <- renderText(message)
-    }
-
-    observeEvent(input$search, {
+    # Runs a search when the button is clicked. The table, chart and message
+    # all read this, so while it runs they're marked as recalculating and show
+    # a spinner. Returns the searched genre, a status ("ok", "empty" or
+    # "failed") and, when "ok", the artists with their Last.fm stats.
+    search_results <- eventReactive(input$search, {
       req(input$genre)
+      genre <- input$genre
       search_failed <- FALSE
-      artist_results <- tryCatch(
-        get_genre_artists_memo(genre = input$genre, limit = genre_artist_limit),
+      artists <- tryCatch(
+        get_genre_artists_memo(genre = genre, limit = genre_artist_limit),
         error = function(e) {
           warning("Last.fm genre search failed: ", conditionMessage(e), call. = FALSE)
           search_failed <<- TRUE
@@ -133,103 +132,121 @@ server <- function(id) {
         }
       )
       if (search_failed) {
-        clear_results("Genre search unavailable. Please try again later.")
-        return()
+        return(list(genre = genre, status = "failed"))
       }
-      if (!test_data_frame(artist_results, min.rows = 1)) {
-        clear_results(paste0("No artists found for the genre '", input$genre, "'. Please try a different genre."))
-        return()
+      if (!test_data_frame(artists, min.rows = 1)) {
+        return(list(genre = genre, status = "empty"))
       }
-      output$message <- renderText("")
-      artist_results <- add_artist_stats(artist_results, get_stats = get_artist_stats_memo)
-      output$artist_table <- renderReactable({
-        reactable(
-          artist_results |> select(rank, name, listeners, playcount, url),
-          columns = list(
-            rank = colDef(name = "Rank", width = 70),
-            name = colDef(
-              name = "Artist",
-              cell = function(value, index) {
-                tags$a(href = artist_results$url[index], target = "_blank", value)
-              }
-            ),
-            listeners = colDef(
-              name = "Listeners",
-              format = colFormat(separators = TRUE, locales = "en-US")
-            ),
-            playcount = colDef(
-              name = "Plays",
-              format = colFormat(separators = TRUE, locales = "en-US")
-            ),
-            url = colDef(show = FALSE)
+      artists <- add_artist_stats(artists, get_stats = get_artist_stats_memo)
+      list(genre = genre, status = "ok", artists = artists)
+    })
+
+    output$message <- renderText({
+      results <- search_results()
+      switch(
+        results$status,
+        failed = "Genre search unavailable. Please try again later.",
+        empty = paste0("No artists found for the genre '", results$genre, "'. Please try a different genre."),
+        ""
+      )
+    })
+
+    output$artist_table <- renderReactable({
+      results <- search_results()
+      if (results$status != "ok") {
+        return(NULL)
+      }
+      artist_results <- results$artists
+      reactable(
+        artist_results |> select(rank, name, listeners, playcount, url),
+        columns = list(
+          rank = colDef(name = "Rank", width = 70),
+          name = colDef(
+            name = "Artist",
+            cell = function(value, index) {
+              tags$a(href = artist_results$url[index], target = "_blank", value)
+            }
           ),
-          theme = reactableTheme(
-            backgroundColor = "#2B2B2B",
-            color = "#E0E0E0",
-            borderColor = "#444444",
-            headerStyle = list(
-              backgroundColor = "#1F1F1F",
-              color = "#E0E0E0"
-            ),
-            tableBodyStyle = list(
-              backgroundColor = "#2B2B2B"
-            ),
-            rowHighlightStyle = list(
-              backgroundColor = "#3A3A3A"
-            ),
-            paginationStyle = list(
-              backgroundColor = "#1F1F1F",
-              color = "#E0E0E0"
-            ),
-            pageButtonHoverStyle = list(
-              backgroundColor = "#3A3A3A"
-            )
+          listeners = colDef(
+            name = "Listeners",
+            format = colFormat(separators = TRUE, locales = "en-US")
           ),
-          pagination = TRUE,
-          paginationType = "simple",
-          defaultPageSize = 10,
-          showPageSizeOptions = TRUE,
-          pageSizeOptions = c(10, 20)
-        )
-      })
-      output$listeners_chart <- renderApexchart({
-        # Nothing to plot if every artist's stats lookup failed
-        if (!test_numeric(artist_results$listeners, all.missing = FALSE)) {
-          return(NULL)
-        }
-        apex(
-          data = artist_results |> arrange(desc(listeners)),
-          type = "bar",
-          mapping = aes(x = name, y = listeners)
-        ) |>
-          ax_title(text = paste0("Top artists tagged '", input$genre, "' by Last.fm listeners")) |>
-          ax_xaxis(
-            title = list(text = "Artist"),
-            labels = list(style = list(colors = "#E0E0E0")),
-            axisBorder = list(show = TRUE, color = "#444444"),
-            axisTicks = list(show = TRUE, color = "#444444")
-          ) |>
-          ax_yaxis(
-            title = list(text = "Listeners"),
-            labels = list(
-              style = list(colors = "#E0E0E0"),
-              formatter = JS("function(value) { return value.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ','); }")
-            ),
-            axisBorder = list(show = TRUE, color = "#444444"),
-            axisTicks = list(show = TRUE, color = "#444444"),
-            tickAmount = 10
-          ) |>
-          ax_chart(
-            background = "#2B2B2B"
-          ) |>
-          ax_colors("#1F77B4") |>
-          ax_grid(
-            borderColor = "#444444"
-          ) |>
-          ax_tooltip(
-            theme = "dark"
+          playcount = colDef(
+            name = "Plays",
+            format = colFormat(separators = TRUE, locales = "en-US")
+          ),
+          url = colDef(show = FALSE)
+        ),
+        theme = reactableTheme(
+          backgroundColor = "#2B2B2B",
+          color = "#E0E0E0",
+          borderColor = "#444444",
+          headerStyle = list(
+            backgroundColor = "#1F1F1F",
+            color = "#E0E0E0"
+          ),
+          tableBodyStyle = list(
+            backgroundColor = "#2B2B2B"
+          ),
+          rowHighlightStyle = list(
+            backgroundColor = "#3A3A3A"
+          ),
+          paginationStyle = list(
+            backgroundColor = "#1F1F1F",
+            color = "#E0E0E0"
+          ),
+          pageButtonHoverStyle = list(
+            backgroundColor = "#3A3A3A"
           )
-      })
+        ),
+        pagination = TRUE,
+        paginationType = "simple",
+        defaultPageSize = 10,
+        showPageSizeOptions = TRUE,
+        pageSizeOptions = c(10, 20)
+      )
+    })
+
+    output$listeners_chart <- renderApexchart({
+      results <- search_results()
+      # Nothing to plot without results, or if every artist's stats lookup failed
+      if (results$status != "ok" || !test_numeric(results$artists$listeners, all.missing = FALSE)) {
+        return(NULL)
+      }
+      apex(
+        data = results$artists |> arrange(desc(listeners)),
+        type = "bar",
+        mapping = aes(x = name, y = listeners)
+      ) |>
+        # The searched genre, not input$genre, so changing the dropdown
+        # without searching doesn't relabel the current chart
+        ax_title(text = paste0("Top artists tagged '", results$genre, "' by Last.fm listeners")) |>
+        ax_xaxis(
+          title = list(text = "Artist"),
+          labels = list(style = list(colors = "#E0E0E0")),
+          axisBorder = list(show = TRUE, color = "#444444"),
+          axisTicks = list(show = TRUE, color = "#444444")
+        ) |>
+        ax_yaxis(
+          title = list(text = "Listeners"),
+          labels = list(
+            style = list(colors = "#E0E0E0"),
+            formatter = JS("function(value) { return value.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ','); }")
+          ),
+          axisBorder = list(show = TRUE, color = "#444444"),
+          axisTicks = list(show = TRUE, color = "#444444"),
+          tickAmount = 10
+        ) |>
+        ax_chart(
+          background = "#2B2B2B"
+        ) |>
+        ax_colors("#1F77B4") |>
+        ax_grid(
+          borderColor = "#444444"
+        ) |>
+        ax_tooltip(
+          theme = "dark"
+        )
     })
   })
 }

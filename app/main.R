@@ -8,13 +8,15 @@ box::use(
     page_fillable
   ],
   shiny[
+    busyIndicatorOptions,
     moduleServer,
     navbarPage,
     NS,
     reactiveVal,
     renderText,
     tabPanel,
-    tags
+    tags,
+    useBusyIndicators
   ],
 )
 
@@ -40,6 +42,13 @@ ui <- function(id) {
       bootswatch = "darkly",
       navbar_bg = "#1DB954",
       navbar_light_color = "white"
+    ),
+    # Show a spinner on each card while its data loads, and a thin bar at the
+    # top of the page whenever the server is busy
+    useBusyIndicators(),
+    busyIndicatorOptions(
+      spinner_color = "#1DB954",
+      pulse_background = "linear-gradient(45deg, #1DB954, #1ED760)"
     ),
     tags$div(
       "Spotify API was changed, the app is being adjusted.",

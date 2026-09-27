@@ -21,7 +21,7 @@ box::use(
     htmlOutput,
     moduleServer,
     NS,
-    observeEvent,
+    reactive,
     renderText,
     renderUI,
     req,
@@ -141,52 +141,61 @@ render_genre_tags <- function(genres) {
 #' @export
 server <- function(id, artist_id) {
   moduleServer(id, function(input, output, session) {
-    # React to artist_id changes
-    observeEvent(artist_id(), {
+    # The API calls live in reactives that the outputs read, so while one is
+    # running its outputs are marked as recalculating and show a spinner
+    artist_info <- reactive({
       req(artist_id())
-      artist_info <- fetch_or_null(get_artist_memo, artist_id())
-      releases <- fetch_or_null(get_release_summary_memo, artist_id())
-      # Spotify no longer returns genres, so use the artist's Last.fm tags
-      genres <- if (test_string(artist_info$name, min.chars = 1)) {
-        fetch_or_null(get_artist_tags_memo, artist_info$name)
+      fetch_or_null(get_artist_memo, artist_id())
+    })
+    releases <- reactive({
+      req(artist_id())
+      fetch_or_null(get_release_summary_memo, artist_id())
+    })
+    # Spotify no longer returns genres, so use the artist's Last.fm tags
+    genres <- reactive({
+      name <- artist_info()$name
+      if (test_string(name, min.chars = 1)) {
+        fetch_or_null(get_artist_tags_memo, name)
       }
-      # Render artist's image dynamically (only the second image) and center it
-      output$artist_image <- renderUI({
-        if (test_character(artist_info$images$url, min.len = 2)) {
-          tags$div(
-            style = "text-align: center;",
-            tags$img(
-              src = artist_info$images$url[2],
-              style = "max-width: 100%; height: auto; width: auto\\9;"
-            )
+    })
+    # Render artist's image dynamically (only the second image) and center it
+    output$artist_image <- renderUI({
+      urls <- artist_info()$images$url
+      if (test_character(urls, min.len = 2)) {
+        tags$div(
+          style = "text-align: center;",
+          tags$img(
+            src = urls[2],
+            style = "max-width: 100%; height: auto; width: auto\\9;"
           )
-        } else {
-          tags$p("Image not available.")
-        }
-      })
-      # Render artist's name
-      output$artist_name <- renderText({
-        if (test_string(artist_info$name, min.chars = 1)) {
-          artist_info$name
-        } else {
-          "Name not available."
-        }
-      })
-      # Render a link to the artist on Spotify
-      output$artist_link <- renderUI({
-        url <- artist_info$external_urls$spotify
-        if (test_string(url, min.chars = 1)) {
-          tags$a(href = url, target = "_blank", class = "spotify-link", "Open in Spotify")
-        }
-      })
-      # Render the release counts and latest release
-      output$artist_releases <- renderUI({
-        render_release_stats(releases)
-      })
-      # Render the artist's genres
-      output$artist_genres <- renderUI({
-        render_genre_tags(genres)
-      })
+        )
+      } else {
+        tags$p("Image not available.")
+      }
+    })
+    # Render artist's name
+    output$artist_name <- renderText({
+      name <- artist_info()$name
+      if (test_string(name, min.chars = 1)) {
+        name
+      } else {
+        "Name not available."
+      }
+    })
+    # Render a link to the artist on Spotify
+    output$artist_link <- renderUI({
+      url <- artist_info()$external_urls$spotify
+      if (test_string(url, min.chars = 1)) {
+        tags$a(href = url, target = "_blank", class = "spotify-link", "Open in Spotify")
+      }
+    })
+    # Render the release counts and latest release
+    output$artist_releases <- renderUI({
+      render_release_stats(releases())
+    })
+    # Render the artist's genres
+    output$artist_genres <- renderUI({
+      render_genre_tags(genres())
     })
   })
 }
