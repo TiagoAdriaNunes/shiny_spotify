@@ -40,8 +40,16 @@ describe("render_release_stats", {
     html <- render_html(render_release_stats(releases))
     expect_match(html, "Albums", fixed = TRUE)
     expect_match(html, "Singles &amp; EPs", fixed = TRUE)
-    expect_match(html, "Appears on", fixed = TRUE)
+    expect_match(html, "Featured on", fixed = TRUE)
     expect_match(html, ">28<", fixed = TRUE)
+  })
+
+  it("explains what each count includes in a tooltip", {
+    html <- render_html(render_release_stats(releases))
+    expect_equal(lengths(regmatches(html, gregexpr("<bslib-tooltip", html))), 3)
+    expect_match(html, "<template>Releases by other artists that include this artist", fixed = TRUE)
+    # Focusable so keyboard users can open the tooltip too
+    expect_equal(lengths(regmatches(html, gregexpr('class="release-stat" tabindex="0"', html))), 3)
   })
 
   it("ignores release groups it has no label for", {
@@ -136,7 +144,7 @@ describe("artist_profile server", {
     expect_equal(result$name, "Artist A")
     expect_match(result$image, 'src="medium.jpg"', fixed = TRUE)
     expect_match(result$link, 'href="https://open.spotify.com/artist/artist-id"', fixed = TRUE)
-    expect_match(result$releases, "Appears on", fixed = TRUE)
+    expect_match(result$releases, "Featured on", fixed = TRUE)
     expect_match(result$releases, "Latest release", fixed = TRUE)
     expect_match(result$genres, "electronic", fixed = TRUE)
     expect_match(result$genres, "house", fixed = TRUE)

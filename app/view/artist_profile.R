@@ -3,7 +3,8 @@ box::use(
     breakpoints,
     card,
     layout_columns,
-    page_fillable
+    page_fillable,
+    tooltip
   ],
   checkmate[
     test_character,
@@ -44,7 +45,15 @@ get_artist_tags_memo <- memoise(get_artist_tags)
 release_labels <- c(
   album = "Albums",
   single = "Singles & EPs",
-  appears_on = "Appears on"
+  appears_on = "Featured on"
+)
+
+# Hover text explaining what each count includes. Spotify counts every
+# edition (deluxe, remaster, ...) as a separate release.
+release_descriptions <- c(
+  album = "The artist's own albums on Spotify, counting each edition separately",
+  single = "The artist's own singles and EPs on Spotify",
+  appears_on = "Releases by other artists that include this artist, such as guest features and compilations"
 )
 
 release_type_labels <- c(album = "Album", single = "Single")
@@ -86,10 +95,17 @@ render_release_stats <- function(releases) {
   stats <- tags$div(
     class = "release-stats",
     imap(counts, function(count, group) {
-      tags$div(
-        class = "release-stat",
-        tags$span(class = "release-stat-count", count),
-        tags$span(class = "release-stat-label", release_labels[[group]])
+      # A Bootstrap tooltip rather than a `title` attribute: native title
+      # tooltips are slow, hidden on touch screens and don't show in some
+      # viewers (e.g. RStudio's)
+      tooltip(
+        tags$div(
+          class = "release-stat",
+          tabindex = "0",
+          tags$span(class = "release-stat-count", count),
+          tags$span(class = "release-stat-label", release_labels[[group]])
+        ),
+        release_descriptions[[group]]
       )
     })
   )

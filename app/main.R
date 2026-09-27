@@ -27,6 +27,10 @@ box::use(
   app / view / related_artists,
 )
 
+# Artist shown when the app opens, before anything is searched. The Spotify
+# ID is used directly so startup doesn't need a search request.
+default_artist <- list(id = "4tZwfgrHOc3mvqYlEYSvVi", name = "Daft Punk")
+
 # Top-level UI function
 #' @export
 ui <- function(id) {
@@ -74,10 +78,9 @@ ui <- function(id) {
 #' @export
 server <- function(id) {
   moduleServer(id, function(input, output, session) {
-    # Initialize artist_id as a reactive value
-    selected_artist_id <- reactiveVal(NULL)
-    # Initialize name_artist as a reactive value
-    selected_artist_name <- reactiveVal(NULL)
+    # Start with the default artist selected so the page isn't empty
+    selected_artist_id <- reactiveVal(default_artist$id)
+    selected_artist_name <- reactiveVal(default_artist$name)
     # Call artist search server and pass the reactive selected_artist_id
     artist_search$server("artist_search", selected_artist_id, selected_artist_name)
     # Call artist profile server and pass the reactive selected_artist_id
