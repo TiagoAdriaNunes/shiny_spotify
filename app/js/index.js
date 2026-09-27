@@ -10,12 +10,26 @@ document.addEventListener('keydown', (event) => {
   if (input.tagName !== 'INPUT') return;
   const search = input.closest('.artist-search');
   if (!search) return;
-  const button = search.querySelector('button');
+  // The Search button specifically: the box's clear (×) is a button too
+  const button = search.querySelector('.bslib-task-button');
   // Disabled while a search is already running
   if (!button || button.disabled) return;
   event.preventDefault();
   input.dispatchEvent(new Event('change', { bubbles: true }));
   button.click();
+});
+
+// The × in the artist search box empties it and puts the cursor back in it,
+// ready to type. "change" tells Shiny the box is now empty. The artist on
+// screen stays loaded; only the text is cleared.
+document.addEventListener('click', (event) => {
+  const clear = event.target.closest('.search-clear');
+  if (!clear) return;
+  const input = clear.parentElement.querySelector('input');
+  if (!input) return;
+  input.value = '';
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+  input.focus();
 });
 
 // Artist names in the genre results table open that artist's profile. Each

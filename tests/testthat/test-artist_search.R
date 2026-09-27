@@ -109,3 +109,10 @@ test_that("open_artist reports when Spotify has no match, selecting nothing", {
   expect_null(result$id)
   expect_equal(result$message, "Artist not found.")
 })
+
+test_that("the search box has a labelled clear button right after its input", {
+  html <- as.character(artist_search$ui("search"))
+  # Right after the input: main.scss hides it while the box is empty
+  expect_match(html, '<input id="search-artist_name"[^>]*/>\\s*<button type="button" class="search-clear"')
+  expect_match(html, 'aria-label="Clear search"', fixed = TRUE)
+})

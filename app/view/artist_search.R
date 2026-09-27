@@ -1,10 +1,11 @@
 box::use(
+  bsicons[bs_icon],
   bslib[input_task_button],
   checkmate[
     assert_string,
     test_data_frame
   ],
-  htmltools[tagAppendAttributes],
+  htmltools[tagAppendAttributes, tagAppendChild],
   memoise[memoise],
   shiny[
     moduleServer,
@@ -36,7 +37,19 @@ ui <- function(id) {
     # Input for artist name. A visible <label> would push the input below
     # the button, so it's named for screen readers with aria-label instead
     textInput(ns("artist_name"), label = NULL, placeholder = "Enter artist name...") |>
-      tagAppendAttributes(`aria-label` = "Artist name", .cssSelector = "input"),
+      tagAppendAttributes(`aria-label` = "Artist name", .cssSelector = "input") |>
+      # An × inside the box that empties it. It sits right after the input so
+      # main.scss can hide it while the box is empty, and app/js/index.js
+      # handles the click.
+      tagAppendChild(
+        tags$button(
+          type = "button",
+          class = "search-clear",
+          `aria-label` = "Clear search",
+          title = "Clear search",
+          bs_icon("x-lg")
+        )
+      ),
     # Button to trigger search; says "Searching..." and is disabled while the
     # search runs. No busy icon: the result cards show the loading spinner.
     input_task_button(ns("search"), "Search", label_busy = "Searching...", icon_busy = NULL, type = "default"),

@@ -50,10 +50,6 @@ ui <- function(id) {
       spinner_color = "#1DB954",
       pulse_background = "linear-gradient(45deg, #1DB954, #1ED760)"
     ),
-    tags$div(
-      class = "api-notice",
-      "Spotify API was changed, the app is being adjusted."
-    ),
     navbarPage(
       # An id so the server can switch tabs, e.g. to open an artist's profile
       # from the genre results

@@ -5,15 +5,6 @@
 $result-card-min-height: 640px;
 $genre-table-min-height: 475px;
 
-// Banner shown while the app is adapted to the Spotify API changes
-.api-notice {
-  background-color: #b91d1d;
-  color: #fff;
-  font-weight: bold;
-  padding: 8px 16px;
-  text-align: center;
-}
-
 .result-card {
   min-height: $result-card-min-height;
 }
@@ -161,6 +152,37 @@ $genre-table-min-height: 475px;
     flex: 1 1 240px;
     margin-bottom: 0;
     max-width: 480px;
+    // For the clear (×) button placed inside the box
+    position: relative;
+
+    input {
+      // Room for the × so long names don't run under it
+      padding-right: 2.5rem;
+    }
+  }
+
+  // The × that empties the box, inside its right edge
+  .search-clear {
+    align-items: center;
+    background: none;
+    border: 0;
+    color: #6c757d;
+    display: flex;
+    height: 100%;
+    padding: 0 0.75rem;
+    position: absolute;
+    right: 0;
+    top: 0;
+
+    &:hover,
+    &:focus-visible {
+      color: #212529;
+    }
+  }
+
+  // Nothing to clear while the box is empty (its placeholder is showing)
+  input:placeholder-shown + .search-clear {
+    display: none;
   }
 
   .shiny-text-output {

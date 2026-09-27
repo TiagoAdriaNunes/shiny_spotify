@@ -81,11 +81,10 @@ test_that("the three result cards reserve their height before loading", {
   expect_equal(lengths(regmatches(html, gregexpr('class="card[^"]*\\bresult-card\\b', html))), 3)
 })
 
-test_that("the API notice is styled by its class in main.scss, not inline", {
+test_that("the page no longer shows the Spotify API changes notice", {
   local_spotify_api(spotify_mock, lastfm = lastfm_mock)
   html <- as.character(ui("app"))
-  expect_no_match(html, "class=\"api-notice\"[^>]*style=")
-  expect_match(html, '<div class="api-notice">Spotify API was changed', fixed = TRUE)
+  expect_no_match(html, "Spotify API was changed", fixed = TRUE)
 })
 
 test_that("clicking an artist in the genre results loads their profile", {
