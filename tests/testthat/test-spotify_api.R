@@ -1,17 +1,34 @@
 box::use(
-  checkmate[expect_data_frame, expect_list],
-  httr2[local_mocked_responses, response, response_json, url_parse],
-  testthat[describe, expect_equal, expect_error, it, test_that],
+  checkmate[
+    expect_data_frame,
+    expect_list
+  ],
+  httr2[
+    local_mocked_responses,
+    response,
+    response_json,
+    url_parse
+  ],
+  testthat[
+    describe,
+    expect_equal,
+    expect_error,
+    it,
+    test_that
+  ],
   withr[local_envvar],
 )
 box::use(
-  app / logic / spotify_api[
-    get_artist,
-    get_artist_top_tracks,
-    get_genre_artists,
-    get_spotify_access_token,
-    search_spotify
-  ],
+  app /
+    logic /
+    spotify_api[
+      get_artist,
+      get_artist_albums,
+      get_artist_top_tracks,
+      get_genre_artists,
+      get_spotify_access_token,
+      search_spotify
+    ],
 )
 
 artist_items <- list(
@@ -98,6 +115,22 @@ test_that("get_artist requests the artist by id", {
   expect_list(result)
   expect_equal(result$name, "Artist A")
   expect_error(get_artist(""), "id")
+})
+
+test_that("get_artist_albums requests the artist's releases in the given groups", {
+  requested <- NULL
+  local_spotify_api(function(req) {
+    requested <<- url_parse(req$url)
+    response_json(body = list(total = 35, items = list(list(id = "a1", name = "Album"))))
+  })
+  result <- get_artist_albums("id1", include_groups = "album,single", limit = 1)
+  expect_equal(requested$path, "/v1/artists/id1/albums")
+  expect_equal(requested$query, list(include_groups = "album,single", limit = "1"))
+  expect_equal(result$total, 35)
+  expect_data_frame(result$items, nrows = 1)
+  expect_error(get_artist_albums(""), "id")
+  expect_error(get_artist_albums("id1", include_groups = "albums"), "include_groups")
+  expect_error(get_artist_albums("id1", include_groups = "album,"), "include_groups")
 })
 
 test_that("get_artist_top_tracks searches tracks filtered by artist and market", {

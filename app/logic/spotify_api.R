@@ -113,6 +113,20 @@ get_artist <- function(id) {
   spotify_get(str_glue("https://api.spotify.com/v1/artists/{id}"))
 }
 
+#' Get a page of an artist's releases. Returns the raw response, whose
+#' `total` counts every release in `include_groups`, not just this page.
+#' @export
+get_artist_albums <- function(id, include_groups = "album", limit = 10) {
+  assert_string(id, min.chars = 1)
+  group <- "(album|single|compilation|appears_on)"
+  assert_string(include_groups, pattern = str_glue("^{group}(,{group})*$"))
+  assert_int(limit, lower = 1)
+  spotify_get(
+    str_glue("https://api.spotify.com/v1/artists/{id}/albums"),
+    query = list(include_groups = include_groups, limit = limit)
+  )
+}
+
 #' @export
 get_artist_top_tracks <- function(artist_name, market = "US", limit = 10) {
   assert_string(artist_name, min.chars = 1)

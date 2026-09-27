@@ -1,7 +1,12 @@
 box::use(
   digest[digest],
-  httr[GET],
-  jsonlite[fromJSON],
+  httr2[
+    request,
+    req_error,
+    req_perform,
+    req_url_query,
+    resp_body_json
+  ],
   purrr[map_chr],
 )
 
@@ -30,12 +35,11 @@ lastfm_api <- function(method, params = list()) {
   if (method %in% c("auth.getSession", "track.scrobble")) {
     params$api_sig <- create_signature(params, Sys.getenv("LASTFM_API_SECRET"))
   }
-  # Make API request
-  response <- GET(
-    base_url,
-    query = params
-  )
-  # Parse response and convert to list
-  content <- fromJSON(rawToChar(response$content), simplifyDataFrame = FALSE)
-  content
+  # Last.fm reports failures as a JSON body with an `error` field, so return
+  # that to the caller instead of raising on the HTTP status
+  request(base_url) |>
+    req_url_query(!!!params) |>
+    req_error(is_error = function(resp) FALSE) |>
+    req_perform() |>
+    resp_body_json(simplifyVector = TRUE, simplifyDataFrame = FALSE)
 }
