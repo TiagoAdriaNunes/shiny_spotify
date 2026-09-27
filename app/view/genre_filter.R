@@ -1,30 +1,71 @@
-# genre_filter.R
 box::use(
-  apexcharter[apex, apexchartOutput, renderApexchart, aes, ax_chart, ax_colors, ax_grid, ax_title, ax_tooltip, ax_xaxis, ax_yaxis], # nolint
-  dplyr[`%>%`, arrange, desc, mutate, select, slice], # nolint
+  apexcharter[
+    apex,
+    apexchartOutput,
+    renderApexchart,
+    aes,
+    ax_chart,
+    ax_colors,
+    ax_grid,
+    ax_title,
+    ax_tooltip,
+    ax_xaxis,
+    ax_yaxis
+  ],
+  checkmate[test_data_frame],
+  dplyr[
+    arrange,
+    desc,
+    mutate,
+    select,
+    slice
+  ],
   htmlwidgets[JS],
-  memoise[memoise], # nolint
-  reactable[reactableOutput, renderReactable, colDef, colFormat, reactable, reactableTheme], # nolint
-  shiny[...], # nolint
+  memoise[memoise],
+  purrr[map_chr],
+  reactable[
+    reactableOutput,
+    renderReactable,
+    colDef,
+    colFormat,
+    reactable,
+    reactableTheme
+  ],
+  shiny[
+    actionButton,
+    fluidPage,
+    mainPanel,
+    moduleServer,
+    NS,
+    observeEvent,
+    renderText,
+    req,
+    selectizeInput,
+    sidebarLayout,
+    sidebarPanel,
+    textOutput,
+    titlePanel
+  ],
 )
 
 box::use(
-  app/config/genres[genres_list], # nolint
-  app/logic/spotify_api[get_genre_artists],
+  app / config / genres[genres_list],
+  app / logic / spotify_api[get_genre_artists],
 )
 
 # Memoized function for caching API calls
 get_genre_artists_memo <- memoise(get_genre_artists)
 
 # UI function
-ui <- function(id) { # nolint
+ui <- function(id) {
   ns <- NS(id)
   fluidPage(
     titlePanel("Find Artists by Genre"),
     sidebarLayout(
       sidebarPanel(
         selectizeInput(
-          ns("genre"), "Select Genre",
+          ns("genre"),
+          "Select Genre",
           choices = c("", genres_list),
           selected = NULL,
           options = list(
@@ -44,21 +85,24 @@ ui <- function(id) { # nolint
 }
 
 # Server function
-server <- function(id) { #nolint
+server <- function(id) {
   moduleServer(id, function(input, output, session) {
     observeEvent(input$search, {
       req(input$genre)
-      artist_results <- tryCatch({
-        # Spotify's /v1/search only accepts limit 0-10 (see
-        # app/logic/spotify_api.R)
-        get_genre_artists_memo(genre = input$genre, limit = 10)
-      }, error = function(e) {
-        output$message <- renderText({
-          paste("An error occurred:", e$message)
-        })
-        NULL
-      })
-      if (is.null(artist_results) || nrow(artist_results) == 0) {
+      artist_results <- tryCatch(
+        {
+          # Spotify's /v1/search only accepts limit 0-10 (see
+          # app/logic/spotify_api.R)
+          get_genre_artists_memo(genre = input$genre, limit = 10)
+        },
+        error = function(e) {
+          output$message <- renderText({
+            paste("An error occurred:", e$message)
+          })
+          NULL
+        }
+      )
+      if (!test_data_frame(artist_results, min.rows = 1)) {
         output$artist_table <- renderReactable({
           NULL
         })
@@ -75,17 +119,17 @@ server <- function(id) { #nolint
         # Spotify omits genres/followers/popularity for some access tiers
         # (see app/logic/spotify_api.R); fill in safe defaults so the
         # pipeline below doesn't error when a field is missing entirely.
-        if (is.null(artist_results$genres)) {
+        if (!"genres" %in% names(artist_results)) {
           artist_results$genres <- vector("list", nrow(artist_results))
         }
-        if (is.null(artist_results$followers.total)) {
+        if (!"followers.total" %in% names(artist_results)) {
           artist_results$followers.total <- NA_real_
         }
-        if (is.null(artist_results$popularity)) {
+        if (!"popularity" %in% names(artist_results)) {
           artist_results$popularity <- NA_real_
         }
         artist_results <- artist_results |>
-          mutate(genres = sapply(genres, function(g) paste(g, collapse = ", "))) |>
+          mutate(genres = map_chr(genres, \(g) paste(g, collapse = ", "))) |>
           arrange(desc(followers.total), desc(popularity))
         # Filter to top 20 artists by followers
         top_20_artists <- artist_results |>
@@ -148,7 +192,7 @@ server <- function(id) { #nolint
               title = list(text = "Total Followers"),
               labels = list(
                 style = list(colors = "#E0E0E0"),
-                formatter = JS("function(value) { return value.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ','); }") #nolint
+                formatter = JS("function(value) { return value.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ','); }")
               ),
               axisBorder = list(show = TRUE, color = "#444444"),
               axisTicks = list(show = TRUE, color = "#444444"),

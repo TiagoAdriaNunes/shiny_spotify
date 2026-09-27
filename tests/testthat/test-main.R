@@ -1,4 +1,3 @@
-# test-main.R
 box::use(
   shiny[testServer],
   testthat[expect_true, test_that],

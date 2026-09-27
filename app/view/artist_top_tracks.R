@@ -1,19 +1,31 @@
 box::use(
+  checkmate[
+    test_data_frame,
+    test_string
+  ],
   htmltools[tagList],
   memoise[memoise],
   purrr[map],
-  shiny[...], #nolint
+  shiny[
+    htmlOutput,
+    moduleServer,
+    NS,
+    observeEvent,
+    renderUI,
+    req,
+    tags
+  ],
   utils[head],
 )
 box::use(
-  app/logic/spotify_api[get_artist_top_tracks],
+  app / logic / spotify_api[get_artist_top_tracks],
 )
 
 # Memoize the get_artist_top_tracks function to cache the results
 get_artist_top_tracks_memoized <- memoise(get_artist_top_tracks)
 
 # UI function for the artist's top tracks
-ui <- function(id) { #nolint
+ui <- function(id) {
   ns <- NS(id)
   tagList(
     htmlOutput(ns("top_tracks_list"))
@@ -21,12 +33,12 @@ ui <- function(id) { #nolint
 }
 
 # Server function for the artist's top tracks
-server <- function(id, artist_name) { #nolint
+server <- function(id, artist_name) {
   moduleServer(id, function(input, output, session) {
-    ns <- session$ns  # Use session to define ns within the server
+    ns <- session$ns # Use session to define ns within the server
     # Observe changes in artist_name (reactive)
     observeEvent(artist_name(), {
-      if (is.null(artist_name()) || artist_name() == "") {
+      if (!test_string(artist_name(), min.chars = 1)) {
         # No artist selected yet
         output$top_tracks_list <- renderUI({
           tags$p("Please select an artist to see their top tracks.")
@@ -34,7 +46,7 @@ server <- function(id, artist_name) { #nolint
         return()
       }
       # If artist_name is available, proceed with fetching top tracks
-      req(artist_name())  # Ensure artist_name is not empty or invalid
+      req(artist_name()) # Ensure artist_name is not empty or invalid
       # Fetch top tracks for the artist via search (get_artist_top_tracks's
       # underlying endpoint is deprecated -- see app/logic/spotify_api.R)
       top_tracks <- tryCatch(
@@ -45,7 +57,7 @@ server <- function(id, artist_name) { #nolint
         }
       )
       output$top_tracks_list <- renderUI({
-        if (is.null(top_tracks) || nrow(top_tracks) == 0) {
+        if (!test_data_frame(top_tracks, min.rows = 1)) {
           return(tags$p("No top tracks found."))
         }
         # Display the top 5 tracks with Spotify embed
@@ -55,7 +67,8 @@ server <- function(id, artist_name) { #nolint
               style = "border-radius:12px",
               src = paste0(
                 "https://open.spotify.com/embed/track/",
-                track_id, "?utm_source=generator&theme=0"
+                track_id,
+                "?utm_source=generator&theme=0"
               ),
               width = "100%",
               height = "80",

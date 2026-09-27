@@ -1,16 +1,35 @@
-# artist_profile.R
-
-# Import necessary libraries and functions
 box::use(
-  bslib[breakpoints, card, layout_columns, page_fillable],
+  bslib[
+    breakpoints,
+    card,
+    layout_columns,
+    page_fillable
+  ],
+  checkmate[
+    assert_number,
+    test_character,
+    test_number,
+    test_string
+  ],
   grDevices[colorRampPalette],
   htmltools[HTML],
   memoise[memoise],
   scales[comma],
-  shiny[...], # nolint
+  shiny[
+    htmlOutput,
+    moduleServer,
+    NS,
+    observeEvent,
+    renderText,
+    renderUI,
+    req,
+    tags,
+    textOutput
+  ],
 )
+
 box::use(
-  app/logic/spotify_api[get_artist],
+  app / logic / spotify_api[get_artist],
 )
 
 # Memoize the Spotify API function for caching
@@ -19,6 +38,8 @@ get_artist_memo <- memoise(get_artist)
 #' @export
 generate_svg_circle <- function(popularity_value) {
   popularity_value <- as.numeric(popularity_value)
+  # Spotify popularity is 0-100; anything else would index outside the palette
+  assert_number(popularity_value, lower = 0, upper = 100)
   # Calculate the radius of the circle
   radius <- 10 + 15 * (popularity_value / 100)
   # Interpolate the color from red (popularity = 0) to green (popularity = 100)
@@ -27,7 +48,13 @@ generate_svg_circle <- function(popularity_value) {
   color <- circle_colour_picker(101)[popularity_value + 1]
   # Generate the SVG code for the circle
   svg_code <- sprintf(
-    '<svg height="%1$s" width="%6$s"><circle cx="%3$s" cy="%2$s" r="%2$s" stroke="none" stroke-width="0" fill="%5$s" /><text class="circle-text" x="%3$s" y="%2$s" font-size="%4$s" fill="white" text-anchor="middle" dy=".3em">%7$s</text></svg>', # nolint
+    paste0(
+      '<svg height="%1$s" width="%6$s">',
+      '<circle cx="%3$s" cy="%2$s" r="%2$s" stroke="none" stroke-width="0" fill="%5$s" />',
+      '<text class="circle-text" x="%3$s" y="%2$s" font-size="%4$s" fill="white" ',
+      'text-anchor="middle" dy=".3em">%7$s</text>',
+      "</svg>"
+    ),
     2 * radius, # SVG height
     radius, # Circle center y
     radius + 80, # Circle center x (shifted to the right)
@@ -87,7 +114,7 @@ server <- function(id, artist_id) {
       artist_info <- fetch_artist_data(artist_id())
       # Render artist's image dynamically (only the second image) and center it
       output$artist_image <- renderUI({
-        if (!is.null(artist_info$images) && length(artist_info$images$url) > 1) {
+        if (test_character(artist_info$images$url, min.len = 2)) {
           tags$div(
             style = "text-align: center;",
             tags$img(
@@ -101,7 +128,7 @@ server <- function(id, artist_id) {
       })
       # Render artist's name
       output$artist_name <- renderText({
-        if (!is.null(artist_info$name)) {
+        if (test_string(artist_info$name, min.chars = 1)) {
           paste(artist_info$name)
         } else {
           "Name not available."
@@ -109,7 +136,7 @@ server <- function(id, artist_id) {
       })
       # Render artist's popularity circle with "Popularity:" text
       output$artist_popularity_circle <- renderUI({
-        if (!is.null(artist_info$popularity)) {
+        if (test_number(artist_info$popularity, lower = 0, upper = 100)) {
           tags$div(
             style = "display: flex; align-items: center;",
             tags$p("Popularity:", style = "margin-right: 10px;"),
@@ -121,7 +148,7 @@ server <- function(id, artist_id) {
       })
       # Render artist's followers
       output$artist_followers <- renderText({
-        if (!is.null(artist_info$followers$total)) {
+        if (test_number(artist_info$followers$total, lower = 0)) {
           paste("Followers:", comma(artist_info$followers$total))
         } else {
           "Followers not available."
@@ -129,7 +156,7 @@ server <- function(id, artist_id) {
       })
       # Render artist's genres
       output$artist_genres <- renderText({
-        if (!is.null(artist_info$genres) && length(artist_info$genres) > 0) {
+        if (test_character(artist_info$genres, min.len = 1)) {
           paste("Genres:", paste(artist_info$genres, collapse = ", "))
         } else {
           "Genres not available."

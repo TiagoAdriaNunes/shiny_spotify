@@ -1,11 +1,21 @@
-# artist_search.R
 box::use(
   bslib[page_fillable],
+  checkmate[test_data_frame],
   memoise[memoise],
-  shiny[...], #nolint
+  shiny[
+    actionButton,
+    moduleServer,
+    NS,
+    observeEvent,
+    renderText,
+    req,
+    textInput,
+    textOutput,
+    verticalLayout
+  ],
 )
 box::use(
-  app/logic/spotify_api[search_spotify],
+  app / logic / spotify_api[search_spotify],
 )
 
 # Memoize the Spotify API functions to enable caching
@@ -18,8 +28,7 @@ ui <- function(id) {
   page_fillable(
     verticalLayout(
       # Input for artist name
-      textInput(ns("artist_name"), "Enter artist name",
-                placeholder = "Type artist name here..."),
+      textInput(ns("artist_name"), "Enter artist name", placeholder = "Type artist name here..."),
       # Button to trigger search
       actionButton(ns("search"), "Search"),
       # Output to display artist information or error message
@@ -33,7 +42,7 @@ ui <- function(id) {
 server <- function(id, selected_artist_id, selected_artist_name) {
   moduleServer(id, function(input, output, session) {
     observeEvent(input$search, {
-      req(input$artist_name)  # Ensure artist_name input is not empty
+      req(input$artist_name) # Ensure artist_name input is not empty
       # Use the memoized version of search_spotify to cache the results
       search_failed <- FALSE
       artist_result <- tryCatch(
@@ -46,9 +55,9 @@ server <- function(id, selected_artist_id, selected_artist_name) {
       )
       if (search_failed) {
         output$artist_info <- renderText("Artist search unavailable. Please try again later.")
-      } else if (nrow(artist_result) > 0) {
-        artist_id <- artist_result$id[1]  # Get the first result's artist ID
-        artist_name <- artist_result$name[1]  # Get the artist name
+      } else if (test_data_frame(artist_result, min.rows = 1)) {
+        artist_id <- artist_result$id[1] # Get the first result's artist ID
+        artist_name <- artist_result$name[1] # Get the artist name
         # Store the artist ID in the reactive value
         selected_artist_id(artist_id)
         # Store the artist name in the reactive value

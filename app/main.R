@@ -1,17 +1,30 @@
-# main.R
-
 box::use(
-  bslib[...], #nolint,
-  shiny[...], #nolint,
+  bslib[
+    bs_theme,
+    breakpoints,
+    card,
+    card_header,
+    layout_columns,
+    page_fillable
+  ],
+  shiny[
+    moduleServer,
+    navbarPage,
+    NS,
+    reactiveVal,
+    renderText,
+    tabPanel,
+    tags
+  ],
 )
 
 box::use(
-  app/logic/auth,
-  app/view/artist_profile,
-  app/view/artist_search,
-  app/view/artist_top_tracks,
-  app/view/genre_filter,
-  app/view/related_artists,
+  app / logic / auth,
+  app / view / artist_profile,
+  app / view / artist_search,
+  app / view / artist_top_tracks,
+  app / view / genre_filter,
+  app / view / related_artists,
 )
 
 # Top-level UI function
@@ -35,7 +48,8 @@ ui <- function(id) {
       title = "Spotify Search App",
       inverse = TRUE,
       windowTitle = "Spotify Search App",
-      tabPanel("Artist Profile",
+      tabPanel(
+        "Artist Profile",
         layout_columns(
           card(card_header("Artist Search"), artist_search$ui(ns("artist_search"))),
           card(card_header("Artist Profile"), artist_profile$ui(ns("artist_profile"))),

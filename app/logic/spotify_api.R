@@ -1,5 +1,3 @@
-# spotify_api.R
-#
 # Spotify tightened its Web API and no longer accepts an access token as a
 # query parameter -- the pattern spotifyr's request functions used -- so
 # spotifyr's search_spotify(), get_artist(), get_artist_top_tracks() and
@@ -25,10 +23,23 @@
 # single ~10-line call.
 
 box::use(
+  checkmate[
+    assert_int,
+    assert_string,
+    test_null
+  ],
   dplyr[as_tibble],
   httr2[
-    request, req_auth_basic, req_auth_bearer_token, req_body_form, req_error,
-    req_perform, req_url_query, resp_body_json, resp_body_string, resp_status,
+    request,
+    req_auth_basic,
+    req_auth_bearer_token,
+    req_body_form,
+    req_error,
+    req_perform,
+    req_url_query,
+    resp_body_json,
+    resp_body_string,
+    resp_status,
   ],
   jsonlite[fromJSON],
   stringr[str_glue],
@@ -40,8 +51,11 @@ safe_limit <- 10
 
 #' @export
 get_spotify_access_token <- function(
-    client_id = Sys.getenv("SPOTIFY_CLIENT_ID"),
-    client_secret = Sys.getenv("SPOTIFY_CLIENT_SECRET")) {
+  client_id = Sys.getenv("SPOTIFY_CLIENT_ID"),
+  client_secret = Sys.getenv("SPOTIFY_CLIENT_SECRET")
+) {
+  assert_string(client_id, min.chars = 1)
+  assert_string(client_secret, min.chars = 1)
   resp <- request("https://accounts.spotify.com/api/token") |>
     req_auth_basic(client_id, client_secret) |>
     req_body_form(grant_type = "client_credentials") |>
@@ -49,7 +63,7 @@ get_spotify_access_token <- function(
     req_perform()
 
   body <- resp_body_json(resp)
-  if (!is.null(body$error)) {
+  if (!test_null(body$error)) {
     stop(str_glue("Could not authenticate with given Spotify credentials:\n\t{body$error_description}"))
   }
   body$access_token
@@ -66,7 +80,7 @@ spotify_request <- function(url, query = list()) {
 spotify_get <- function(url, query = list()) {
   resp <- spotify_request(url, query) |> req_perform()
 
-  if (resp_status(resp) == 400 && !is.null(query$limit) && query$limit > safe_limit) {
+  if (resp_status(resp) == 400 && !test_null(query$limit) && query$limit > safe_limit) {
     body <- resp_body_string(resp)
     if (grepl("limit", body, ignore.case = TRUE)) {
       query$limit <- safe_limit
@@ -83,6 +97,9 @@ spotify_get <- function(url, query = list()) {
 
 #' @export
 search_spotify <- function(q, type = "artist", limit = 10) {
+  assert_string(q, min.chars = 1)
+  assert_string(type, min.chars = 1)
+  assert_int(limit, lower = 1)
   res <- spotify_get(
     "https://api.spotify.com/v1/search",
     query = list(q = q, type = type, limit = limit)
@@ -92,11 +109,15 @@ search_spotify <- function(q, type = "artist", limit = 10) {
 
 #' @export
 get_artist <- function(id) {
+  assert_string(id, min.chars = 1)
   spotify_get(str_glue("https://api.spotify.com/v1/artists/{id}"))
 }
 
 #' @export
 get_artist_top_tracks <- function(artist_name, market = "US", limit = 10) {
+  assert_string(artist_name, min.chars = 1)
+  assert_string(market, pattern = "^[A-Z]{2}$")
+  assert_int(limit, lower = 1)
   res <- spotify_get(
     "https://api.spotify.com/v1/search",
     query = list(q = str_glue('artist:"{artist_name}"'), type = "track", market = market, limit = limit)
@@ -106,6 +127,8 @@ get_artist_top_tracks <- function(artist_name, market = "US", limit = 10) {
 
 #' @export
 get_genre_artists <- function(genre, limit = 10) {
+  assert_string(genre, min.chars = 1)
+  assert_int(limit, lower = 1)
   res <- spotify_get(
     "https://api.spotify.com/v1/search",
     query = list(q = str_glue('genre:"{genre}"'), type = "artist", limit = limit)

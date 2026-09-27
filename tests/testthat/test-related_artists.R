@@ -1,5 +1,6 @@
 box::use(
-  testthat[describe, expect_equal, expect_true, it, test_that],
+  checkmate[expect_class, expect_data_frame],
+  testthat[describe, expect_error, it, test_that],
 )
 box::use(
   app/view/related_artists[render_similar_artists_network],
@@ -7,7 +8,18 @@ box::use(
 
 test_that("render_similar_artists_network returns tags$p when similar_artists is NULL", {
   result <- render_similar_artists_network(NULL, "Artist A", NULL)
-  expect_true(inherits(result, "shiny.tag"))
+  expect_class(result, "shiny.tag")
+})
+
+test_that("render_similar_artists_network returns tags$p when similar_artists has no rows", {
+  empty <- data.frame(name = character(0), match = numeric(0))
+  result <- render_similar_artists_network(NULL, "Artist A", empty)
+  expect_class(result, "shiny.tag")
+})
+
+test_that("render_similar_artists_network requires a main artist name", {
+  expect_error(render_similar_artists_network(NULL, "", NULL), "main_artist_name")
+  expect_error(render_similar_artists_network(NULL, NULL, NULL), "main_artist_name")
 })
 
 test_that("render_similar_artists_network returns a visNetwork object with valid data", {
@@ -17,7 +29,7 @@ test_that("render_similar_artists_network returns a visNetwork object with valid
     stringsAsFactors = FALSE
   )
   result <- render_similar_artists_network(NULL, "Artist A", similar_artists)
-  expect_true(inherits(result, "visNetwork"))
+  expect_class(result, "visNetwork")
 })
 
 describe("render_similar_artists_network node structure", {
@@ -30,11 +42,11 @@ describe("render_similar_artists_network node structure", {
   it("includes main artist and similar artists as nodes", {
     result <- render_similar_artists_network(NULL, "Artist A", similar_artists)
     # Main artist + 2 similar + up to second-level (network mocked via real data)
-    expect_true(nrow(result$x$nodes) >= 3)
+    expect_data_frame(result$x$nodes, min.rows = 3)
   })
 
   it("includes edges from main artist to similar artists", {
     result <- render_similar_artists_network(NULL, "Artist A", similar_artists)
-    expect_true(nrow(result$x$edges) >= 2)
+    expect_data_frame(result$x$edges, min.rows = 2)
   })
 })

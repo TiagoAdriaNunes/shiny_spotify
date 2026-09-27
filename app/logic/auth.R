@@ -1,7 +1,5 @@
-# auth.R
-
 box::use(
-  app/logic/spotify_api[get_spotify_access_token],
+  app / logic / spotify_api[get_spotify_access_token],
 )
 
 # get_spotify_access_token get client_id = Sys.getenv("SPOTIFY_CLIENT_ID"),
@@ -10,7 +8,7 @@ box::use(
 # down the whole app at box::use() load time (e.g. the Last.fm-only tab
 # should keep working without a Spotify token).
 access_token <- tryCatch(
-  get_spotify_access_token(), #nolint
+  get_spotify_access_token(),
   error = function(e) {
     warning("Spotify authentication failed: ", conditionMessage(e), call. = FALSE)
     NULL

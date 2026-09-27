@@ -1,8 +1,9 @@
-# related_artists.R
-
 box::use(
-  dplyr[`%>%`], memoise[memoise], shiny[...], # nolint
-  visNetwork[renderVisNetwork, visEdges, visNetwork, visNetworkOutput, visNodes, visOptions], utils[str],
+  checkmate[assert_character, assert_string, test_data_frame, test_null],
+  memoise[memoise],
+  purrr[compact, map, set_names],
+  shiny[moduleServer, NS, observe, observeEvent, renderUI, req, tags],
+  visNetwork[renderVisNetwork, visEdges, visNetwork, visNetworkOutput, visNodes, visOptions],
 )
 
 box::use(
@@ -20,6 +21,7 @@ ui <- function(id) {
 
 # Helper function to fetch similar artists from Last.fm (cached via memoise)
 fetch_similar_artists <- function(artist_name) {
+  assert_string(artist_name, min.chars = 1)
   tryCatch(
     get_similar_artists_memo(artist_name, limit = 5),
     error = function(e) NULL
@@ -28,20 +30,18 @@ fetch_similar_artists <- function(artist_name) {
 
 # Helper function to fetch similar artists for multiple artists
 similar_artists_for_multiple <- function(artist_names) {
-  all_similar_artists <- list()
-  for (artist_name in artist_names) {
-    similar_artists <- fetch_similar_artists(artist_name)
-    if (!is.null(similar_artists)) {
-      all_similar_artists[[artist_name]] <- similar_artists
-    }
-  }
-  all_similar_artists
+  assert_character(artist_names, min.chars = 1, any.missing = FALSE)
+  artist_names |>
+    set_names() |>
+    map(fetch_similar_artists) |>
+    compact()
 }
 
 # Helper function to render related artists network
 #' @export
 render_similar_artists_network <- function(ns, main_artist_name, similar_artists) {
-  if (is.null(similar_artists)) {
+  assert_string(main_artist_name, min.chars = 1)
+  if (!test_data_frame(similar_artists, min.rows = 1)) {
     return(tags$p("No similar artists found."))
   }
   # Initialize nodes and edges data frames
@@ -99,7 +99,7 @@ render_similar_artists_network <- function(ns, main_artist_name, similar_artists
     )
     # Get second level similar artists
     second_level <- fetch_similar_artists(similar_artist_name)
-    if (!is.null(second_level)) {
+    if (test_data_frame(second_level, min.rows = 1)) {
       for (j in seq_len(nrow(second_level))) {
         second_artist_name <- second_level$name[j]
         if (!second_artist_name %in% names(artist_name_to_node_id)) {
@@ -142,7 +142,7 @@ server <- function(id, artist_name) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     observe({
-      if (is.null(artist_name())) {
+      if (test_null(artist_name())) {
         output$related_artists_network <- renderUI({
           tags$p("No artist selected.")
         })
