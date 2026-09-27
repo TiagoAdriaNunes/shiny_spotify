@@ -1,4 +1,5 @@
 box::use(
+  checkmate[test_null],
   httr2[
     local_mocked_responses,
     response_json
@@ -24,7 +25,7 @@ local_spotify_api <- function(api, lastfm = NULL, env = parent.frame()) {
         return(response_json(body = list(access_token = "test-token")))
       }
       if (grepl("ws.audioscrobbler.com", req$url, fixed = TRUE)) {
-        if (is.null(lastfm)) {
+        if (test_null(lastfm)) {
           stop("Unexpected Last.fm request: ", req$url)
         }
         return(lastfm(req))

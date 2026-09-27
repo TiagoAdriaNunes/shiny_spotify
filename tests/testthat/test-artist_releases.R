@@ -1,4 +1,5 @@
 box::use(
+  checkmate[test_null],
   httr2[
     response_json,
     url_parse
@@ -17,7 +18,7 @@ box::use(
 )
 
 release_page <- function(total, name = NULL, type = NULL, date = NULL) {
-  items <- if (is.null(name)) {
+  items <- if (test_null(name)) {
     data.frame()
   } else {
     data.frame(

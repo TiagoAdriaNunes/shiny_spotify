@@ -25,7 +25,6 @@ box::use(
       get_artist,
       get_artist_albums,
       get_artist_top_tracks,
-      get_genre_artists,
       get_spotify_access_token,
       search_spotify
     ],
@@ -147,16 +146,4 @@ test_that("get_artist_top_tracks searches tracks filtered by artist and market",
   )
   expect_data_frame(result, nrows = 1)
   expect_error(get_artist_top_tracks("Artist A", market = "brazil"), "market")
-})
-
-test_that("get_genre_artists searches artists filtered by genre", {
-  requested <- NULL
-  local_spotify_api(function(req) {
-    requested <<- url_parse(req$url)
-    response_json(body = list(artists = list(items = artist_items)))
-  })
-  result <- get_genre_artists("rock", limit = 10)
-  expect_equal(requested$query, list(q = 'genre:"rock"', type = "artist", limit = "10"))
-  expect_data_frame(result, nrows = 2)
-  expect_error(get_genre_artists(""), "genre")
 })

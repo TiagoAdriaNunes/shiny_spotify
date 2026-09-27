@@ -138,14 +138,3 @@ get_artist_top_tracks <- function(artist_name, market = "US", limit = 10) {
   )
   as_tibble(res$tracks$items)
 }
-
-#' @export
-get_genre_artists <- function(genre, limit = 10) {
-  assert_string(genre, min.chars = 1)
-  assert_int(limit, lower = 1)
-  res <- spotify_get(
-    "https://api.spotify.com/v1/search",
-    query = list(q = str_glue('genre:"{genre}"'), type = "artist", limit = limit)
-  )
-  as_tibble(res$artists$items)
-}

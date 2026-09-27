@@ -7,6 +7,7 @@ box::use(
   testthat[
     describe,
     expect_equal,
+    expect_error,
     expect_false,
     expect_null,
     it,
@@ -14,8 +15,21 @@ box::use(
   ],
 )
 box::use(
-  app / logic / lastfm[create_signature, lastfm_api],
+  app / logic / lastfm[create_signature, lastfm_api, stop_for_lastfm_error],
 )
+
+test_that("stop_for_lastfm_error raises Last.fm's error code and message", {
+  expect_error(
+    stop_for_lastfm_error(list(error = 10, message = "Invalid API key")),
+    "Last.fm API error (10): Invalid API key",
+    fixed = TRUE
+  )
+})
+
+test_that("stop_for_lastfm_error passes successful responses through", {
+  result <- list(toptags = list(tag = list()))
+  expect_equal(stop_for_lastfm_error(result), result)
+})
 
 test_that("create_signature signs params sorted by key with the secret appended", {
   result <- create_signature(list(method = "auth.getSession", api_key = "key"), "secret")

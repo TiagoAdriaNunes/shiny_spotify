@@ -1,4 +1,5 @@
 box::use(
+  checkmate[test_null],
   digest[digest],
   httr2[
     request,
@@ -22,6 +23,16 @@ create_signature <- function(params, secret) {
     secret
   )
   digest(signature_base, algo = "md5", serialize = FALSE)
+}
+
+#' Raise Last.fm's error response (an `error` code and `message`) as an R
+#' error, so callers can tell a failed request apart from an empty result
+#' @export
+stop_for_lastfm_error <- function(result) {
+  if (!test_null(result$error)) {
+    stop("Last.fm API error (", result$error, "): ", result$message, call. = FALSE)
+  }
+  invisible(result)
 }
 
 #' @export
