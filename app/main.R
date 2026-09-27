@@ -103,8 +103,6 @@ server <- function(id) {
     # Call artist search server and pass the reactive selected_artist_id. It
     # returns open_artist(name), which runs the same search from elsewhere.
     open_artist <- artist_search$server("artist_search", selected_artist_id, selected_artist_name)
-    # Call artist profile server and pass the reactive selected_artist_id
-    artist_profile$server("artist_profile", selected_artist_id)
     # Call artist top tracks server and pass the reactive selected_artist_name
     artist_top_tracks$server("artist_top_tracks", selected_artist_name)
     # Opens an artist's profile from anywhere in the app (the genre results,
@@ -120,7 +118,12 @@ server <- function(id) {
     # Call related artists server; selecting a node offers to open its profile
     related_artists$server("related_artists", selected_artist_name, open_artist = open_artist_profile)
     # Clicking an artist in the genre results opens their profile
-    genre_filter$server("genre_filter", open_artist = open_artist_profile)
+    search_genre <- genre_filter$server("genre_filter", open_artist = open_artist_profile)
+    open_genre <- function(genre) {
+      updateNavbarPage(session, "tabs", selected = "Search by Genre")
+      search_genre(genre)
+    }
+    artist_profile$server("artist_profile", selected_artist_id, open_genre = open_genre)
     # Define output$message
     output$message <- renderText({
       "Spotify Search App!"

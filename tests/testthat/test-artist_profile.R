@@ -77,6 +77,12 @@ describe("render_release_stats", {
 })
 
 describe("render_genre_tags", {
+  it("renders accessible genre buttons when navigation is available", {
+    html <- render_html(render_genre_tags(c("rock", "r&b"), input_id = "profile-genre_clicked"))
+    expect_match(html, '<button type="button"', fixed = TRUE)
+    expect_match(html, 'data-input-id="profile-genre_clicked"', fixed = TRUE)
+    expect_match(html, 'data-genre="r&amp;b"', fixed = TRUE)
+  })
   it("shows a tag per genre with Last.fm attribution", {
     html <- render_html(render_genre_tags(c("electronic", "house")))
     expect_equal(lengths(regmatches(html, gregexpr('class="genre-tag"', html))), 2)

@@ -15,6 +15,7 @@ box::use(
   app / main[server, ui],
   app / view / artist_profile,
   app / view / artist_top_tracks,
+  app / view / genre_filter,
   app / view / related_artists,
 )
 
@@ -45,6 +46,35 @@ test_that("main server initializes and renders app title", {
   local_spotify_api(spotify_mock, lastfm = lastfm_mock)
   testServer(server, {
     expect_match(output$message, "Spotify Search App!", fixed = TRUE)
+  })
+})
+
+test_that("profile genre tags search immediately and manual searches still work", {
+  for (memo in c("get_top_genres_memo", "get_genre_artists_memo", "get_artist_stats_memo")) {
+    forget_memo(genre_filter, memo)
+  }
+  local_spotify_api(spotify_mock, lastfm = function(req) {
+    query <- url_parse(req$url)$query
+    if (query$method == "tag.getTopArtists") {
+      return(response_json(body = list(topartists = list(artist = list(
+        list(name = paste(query$tag, "artist"), url = "https://www.last.fm/music/test", `@attr` = list(rank = "1"))
+      )))))
+    }
+    if (query$method == "artist.getInfo") {
+      return(response_json(body = list(artist = list(stats = list(listeners = "100", playcount = "1000")))))
+    }
+    lastfm_mock(req)
+  })
+  testServer(server, {
+    session$setInputs(`genre_filter-genre` = "rock")
+    for (genre in c("electronic", "house", "house")) {
+      session$setInputs(`artist_profile-genre_clicked` = genre)
+      expect_match(output[["genre_filter-artist_table"]], paste(genre, "artist"), fixed = TRUE)
+      expect_match(output[["genre_filter-listeners_chart"]], paste0("tagged '", genre, "'"), fixed = TRUE)
+      expect_match(output[["genre_filter-plays_chart"]], paste0("tagged '", genre, "'"), fixed = TRUE)
+    }
+    session$setInputs(`genre_filter-genre` = "rock", `genre_filter-search` = 1)
+    expect_match(output[["genre_filter-artist_table"]], "rock artist", fixed = TRUE)
   })
 })
 

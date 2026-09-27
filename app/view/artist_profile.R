@@ -8,6 +8,7 @@ box::use(
   ],
   checkmate[
     test_character,
+    test_function,
     test_list,
     test_string
   ],
@@ -21,6 +22,7 @@ box::use(
     htmlOutput,
     moduleServer,
     NS,
+    observeEvent,
     reactive,
     renderText,
     renderUI,
@@ -127,20 +129,36 @@ render_release_stats <- function(releases) {
 }
 
 #' @export
-render_genre_tags <- function(genres) {
+render_genre_tags <- function(genres, input_id = NULL) {
   if (!test_character(genres, min.len = 1)) {
     return(tags$p("Genres not available."))
   }
   tags$div(
-    tags$div(class = "genre-tags", map(genres, \(genre) tags$span(class = "genre-tag", genre))),
+    tags$div(class = "genre-tags", map(genres, function(genre) {
+      if (!test_string(input_id)) {
+        return(tags$span(class = "genre-tag", genre))
+      }
+      tags$button(
+        type = "button",
+        class = "genre-tag genre-search-link",
+        `data-input-id` = input_id,
+        `data-genre` = genre,
+        title = paste("Find artists tagged", genre),
+        genre
+      )
+    })),
     tags$small(class = "text-muted", "Genres from Last.fm")
   )
 }
 
 # Server function for the artist profile
 #' @export
-server <- function(id, artist_id) {
+server <- function(id, artist_id, open_genre = NULL) {
   moduleServer(id, function(input, output, session) {
+    observeEvent(input$genre_clicked, {
+      req(test_function(open_genre), test_string(input$genre_clicked, min.chars = 1))
+      open_genre(input$genre_clicked)
+    })
     # The API calls live in reactives that the outputs read, so while one is
     # running its outputs are marked as recalculating and show a spinner
     artist_info <- reactive({
@@ -200,7 +218,7 @@ server <- function(id, artist_id) {
     })
     # Render the artist's genres
     output$artist_genres <- renderUI({
-      render_genre_tags(genres())
+      render_genre_tags(genres(), input_id = if (test_function(open_genre)) session$ns("genre_clicked"))
     })
   })
 }

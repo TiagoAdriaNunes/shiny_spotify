@@ -50,7 +50,8 @@ box::use(
     selectizeInput,
     sidebarLayout,
     sidebarPanel,
-    textOutput
+    textOutput,
+    updateSelectizeInput
   ],
   stringr[str_glue],
 )
@@ -174,13 +175,20 @@ ui <- function(id) {
 #'   artist_search's server). NULL makes the artists not clickable.
 server <- function(id, open_artist = NULL) {
   moduleServer(id, function(input, output, session) {
+    search_request <- reactiveVal(NULL)
+    search_number <- 0L
+    request_search <- function(genre) {
+      req(test_string(genre, min.chars = 1))
+      search_number <<- search_number + 1L
+      search_request(list(genre = genre, number = search_number))
+    }
+    observeEvent(input$search, request_search(input$genre))
     # Runs a search when the button is clicked. The table, chart and message
     # all read this, so while it runs they're marked as recalculating and show
     # a spinner. Returns the searched genre, a status ("ok", "empty" or
     # "failed") and, when "ok", the artists with their Last.fm stats.
-    search_results <- eventReactive(input$search, {
-      req(input$genre)
-      genre <- input$genre
+    search_results <- eventReactive(search_request(), {
+      genre <- search_request()$genre
       search_failed <- FALSE
       artists <- tryCatch(
         get_genre_artists_memo(genre = genre, limit = genre_artist_limit),
@@ -204,7 +212,7 @@ server <- function(id, open_artist = NULL) {
     # their profile. When Spotify has no match the user stays here and sees
     # why; a new genre search clears that message.
     open_error <- reactiveVal("")
-    observeEvent(input$search, open_error(""))
+    observeEvent(search_request(), open_error(""))
     open_clicked_artist <- function(name) {
       req(test_function(open_artist), test_string(name, min.chars = 1))
       open_error("")
@@ -362,5 +370,12 @@ server <- function(id, open_artist = NULL) {
     output$plays_chart <- renderApexchart({
       artist_chart("playcount", "Total plays", "#F2A541", "plays_chart_click")
     })
+    # Search directly using the clicked tag; the browser's selected input
+    # is updated asynchronously and must not supply the previous genre.
+    function(genre) {
+      req(test_string(genre, min.chars = 1))
+      updateSelectizeInput(session, "genre", choices = unique(c(genre_choices(), genre)), selected = genre)
+      request_search(genre)
+    }
   })
 }

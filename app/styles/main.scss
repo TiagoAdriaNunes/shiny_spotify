@@ -172,6 +172,17 @@ $genre-table-min-height: 475px;
   padding: 2px 10px;
 }
 
+.genre-search-link {
+  border: 0;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background-color: #168a40;
+    text-decoration: underline;
+  }
+}
+
 .artist-search {
   align-items: center;
   display: flex;

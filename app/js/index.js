@@ -63,3 +63,10 @@ document.addEventListener('click', (event) => {
   if (!button || !window.Shiny) return;
   window.Shiny.setInputValue(button.dataset.inputId, button.dataset.artist, { priority: 'event' });
 });
+
+// Profile genre tags navigate to the genre results through the main module.
+document.addEventListener('click', (event) => {
+  const button = event.target.closest('.genre-search-link');
+  if (!button || !window.Shiny) return;
+  window.Shiny.setInputValue(button.dataset.inputId, button.dataset.genre, { priority: 'event' });
+});
