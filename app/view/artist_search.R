@@ -1,6 +1,6 @@
 box::use(
-  bslib[page_fillable],
   checkmate[test_data_frame],
+  htmltools[tagAppendAttributes],
   memoise[memoise],
   shiny[
     actionButton,
@@ -9,9 +9,9 @@ box::use(
     observeEvent,
     renderText,
     req,
+    tags,
     textInput,
-    textOutput,
-    verticalLayout
+    textOutput
   ],
 )
 box::use(
@@ -25,15 +25,17 @@ search_spotify_memo <- memoise(search_spotify)
 #' @export
 ui <- function(id) {
   ns <- NS(id)
-  page_fillable(
-    verticalLayout(
-      # Input for artist name
-      textInput(ns("artist_name"), "Enter artist name", placeholder = "Type artist name here..."),
-      # Button to trigger search
-      actionButton(ns("search"), "Search"),
-      # Output to display artist information or error message
-      textOutput(ns("artist_info"))
-    )
+  # A single row so the search sits above the result cards
+  tags$div(
+    class = "artist-search",
+    # Input for artist name. A visible <label> would push the input below
+    # the button, so it's named for screen readers with aria-label instead
+    textInput(ns("artist_name"), label = NULL, placeholder = "Enter artist name...") |>
+      tagAppendAttributes(`aria-label` = "Artist name", .cssSelector = "input"),
+    # Button to trigger search
+    actionButton(ns("search"), "Search"),
+    # Output to display artist information or error message
+    textOutput(ns("artist_info"))
   )
 }
 

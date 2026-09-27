@@ -1,11 +1,18 @@
 box::use(
   httr2[response, response_json],
   shiny[isolate, reactiveVal, testServer],
-  testthat[expect_equal, expect_null, expect_warning, test_that],
+  testthat[expect_equal, expect_match, expect_no_match, expect_null, expect_warning, test_that],
 )
 box::use(
   app / view / artist_search,
 )
+
+test_that("the search input is named for screen readers without a visible label", {
+  html <- as.character(artist_search$ui("search"))
+  expect_match(html, 'id="search-artist_name"[^>]*aria-label="Artist name"')
+  # A visible label would push the input below the Search button
+  expect_no_match(html, "<label[^>]*>[^<]+</label>")
+})
 
 # Runs a search for "Artist" against the mocked `api` and returns the
 # rendered message plus the values written to the shared reactives.

@@ -50,15 +50,17 @@ ui <- function(id) {
       windowTitle = "Spotify Search App",
       tabPanel(
         "Artist Profile",
+        card(artist_search$ui(ns("artist_search"))),
         layout_columns(
-          card(card_header("Artist Search"), artist_search$ui(ns("artist_search"))),
           card(card_header("Artist Profile"), artist_profile$ui(ns("artist_profile"))),
           card(card_header("Top Tracks"), artist_top_tracks$ui(ns("artist_top_tracks"))),
           card(card_header("Related Artists powered by Last.fm"), related_artists$ui(ns("related_artists"))),
+          # The related artists network needs width, so it gets its own row
+          # until the screen is wide enough for three columns
           col_widths = breakpoints(
-            sm = c(6, 6, 6, 6),
-            md = c(6, 6, 6, 6),
-            lg = c(3, 3, 3, 3)
+            sm = c(6, 6, 12),
+            md = c(6, 6, 12),
+            lg = c(4, 4, 4)
           )
         )
       ),
