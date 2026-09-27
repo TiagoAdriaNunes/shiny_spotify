@@ -4,6 +4,7 @@ box::use(
     assert_string,
     test_data_frame
   ],
+  dplyr[coalesce],
   purrr[
     compact,
     keep,
@@ -40,7 +41,7 @@ get_release_summary <- function(artist_id) {
 #' @export
 summarise_releases <- function(pages) {
   assert_list(pages, names = "unique")
-  counts <- map_int(pages, \(page) as.integer(page$total %||% 0L))
+  counts <- map_int(pages, \(page) as.integer(coalesce(page$total, 0L)))
   # Only the artist's own albums and singles count as their latest release
   own <- pages[intersect(names(pages), c("album", "single"))] |>
     map(\(page) page$items) |>

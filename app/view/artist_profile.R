@@ -10,6 +10,7 @@ box::use(
     test_list,
     test_string
   ],
+  dplyr[coalesce],
   memoise[memoise],
   purrr[
     imap,
@@ -94,7 +95,7 @@ render_release_stats <- function(releases) {
   )
   latest <- releases$latest
   if (test_list(latest) && test_string(latest$name, min.chars = 1)) {
-    type <- release_type_labels[latest$type %||% ""]
+    type <- release_type_labels[coalesce(latest$type, "")]
     details <- c(if (!is.na(type)) type, substr(latest$release_date, 1, 4))
     stats <- tags$div(
       stats,
